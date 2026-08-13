@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const runtime = 'nodejs';
+export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,22 +11,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
     if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-      // Dynamic import for pdf-parse in Node runtime
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const pdfParse = require('pdf-parse');
-      const parsed = await pdfParse(buffer);
-      return NextResponse.json({
-        text: parsed.text || '',
-        info: parsed.info,
-        numpages: parsed.numpages,
-      });
+      // PDF binary parsing is not available in Edge Runtime.
+      // Read raw bytes and attempt to extract visible text fragments.
+      const raw = await file.text();
+      // Grab parenthesized strings from PDF stream (very basic heuristic)
+      const fragments = raw.match(/\(([^)]{1,500})\)/g);
+      const text = fragments
+        ? fragments.map((m) => m.slice(1, -1)).join(' ')
+        : '';
+      return NextResponse.json({ text, info: {}, numpages: 0 });
     } else {
       // Plain text / markdown / code file
-      const text = buffer.toString('utf-8');
+      const text = await file.text();
       return NextResponse.json({ text });
     }
   } catch (err: unknown) {
