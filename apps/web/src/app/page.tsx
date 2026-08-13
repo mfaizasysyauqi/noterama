@@ -259,21 +259,27 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Stats strip ────────────────────────────────────────────────── */}
+      {/* ── Stats marquee strip ────────────────────────────────────────── */}
       <div className="lp-stats-strip">
-        <div className="lp-stats-inner">
+        <div className="lp-marquee-track-reverse">
           {[
-            { n: 100, suffix: '%', label: 'Open source' },
-            { n: 0, suffix: ' sign-ups', label: 'Needed to start' },
-            { n: 4, suffix: ' AI models', label: 'Supported out of box' },
-            { n: 300, suffix: 'ms', label: 'Autosave debounce' },
-          ].map(({ n, suffix, label }) => (
-            <div key={label} className="lp-stat">
-              <span className="lp-stat-n">
-                <Counter to={n} />
-                {suffix}
-              </span>
-              <span className="lp-stat-label">{label}</span>
+            { num: '100%', label: 'OPEN SOURCE' },
+            { num: '0', label: 'SIGN-UPS NEEDED' },
+            { num: '4+', label: 'AI MODELS SUPPORTED' },
+            { num: '300ms', label: 'AUTOSAVE DEBOUNCE' },
+            { num: '100%', label: 'DATA PRIVACY (BYOK)' },
+            { num: '0ms', label: 'CLOUD DEPENDENCY' },
+          ].concat([
+            { num: '100%', label: 'OPEN SOURCE' },
+            { num: '0', label: 'SIGN-UPS NEEDED' },
+            { num: '4+', label: 'AI MODELS SUPPORTED' },
+            { num: '300ms', label: 'AUTOSAVE DEBOUNCE' },
+            { num: '100%', label: 'DATA PRIVACY (BYOK)' },
+            { num: '0ms', label: 'CLOUD DEPENDENCY' },
+          ]).map((stat, idx) => (
+            <div key={idx} className="lp-stat-pill">
+              <span className="lp-stat-pill-num">{stat.num}</span>
+              <span className="lp-stat-pill-label">{stat.label}</span>
             </div>
           ))}
         </div>
@@ -768,35 +774,65 @@ export default function LandingPage() {
         }
         .lp-date { font-size: 11px; font-weight: 400; color: #475569; }
 
-        /* ── Stats strip ─────────────────────────────────── */
+        /* ── Stats strip (Reverse Marquee) ───────────────── */
         .lp-stats-strip {
-          border-top: 1px solid #161c2a;
-          border-bottom: 1px solid #161c2a;
-          background: #090c12;
+          position: relative;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 24px 0;
+          background-color: #06080d;
+          background-image: 
+            linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+          background-size: 32px 32px;
+          overflow: hidden;
+          mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+          -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
         }
-        .lp-stats-inner {
-          max-width: 1160px;
-          margin: 0 auto;
-          padding: 36px 24px;
-          display: grid;
-          grid-template-columns: repeat(4, 1fr);
-          gap: 24px;
-        }
-        .lp-stat {
+        .lp-marquee-track-reverse {
           display: flex;
-          flex-direction: column;
-          gap: 4px;
-          padding: 0 0 0 20px;
-          border-left: 2px solid #0ea5e9;
+          align-items: center;
+          gap: 16px;
+          width: max-content;
+          animation: marquee-reverse 30s linear infinite;
         }
-        .lp-stat-n {
-          font-size: 26px;
+        .lp-marquee-track-reverse:hover {
+          animation-play-state: paused;
+        }
+        .lp-stat-pill {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 9px 20px;
+          border-radius: 12px;
+          background: rgba(13, 17, 26, 0.85);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          font-size: 13px;
+          white-space: nowrap;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          transition: border-color 0.2s, transform 0.2s;
+        }
+        .lp-stat-pill:hover {
+          border-color: rgba(16, 185, 129, 0.4);
+          transform: translateY(-1px);
+        }
+        .lp-stat-pill-num {
           font-weight: 800;
-          color: #f8fafc;
-          letter-spacing: -0.03em;
-          font-variant-numeric: tabular-nums;
+          color: #10b981;
+          font-size: 14px;
+          letter-spacing: -0.02em;
         }
-        .lp-stat-label { font-size: 12px; color: #64748b; }
+        .lp-stat-pill-label {
+          font-weight: 700;
+          color: #f1f5f9;
+          font-size: 11.5px;
+          letter-spacing: 0.04em;
+        }
+        @keyframes marquee-reverse {
+          0% { transform: translateX(-50%); }
+          100% { transform: translateX(0); }
+        }
 
         /* ── Features section ────────────────────────────── */
         .lp-features { padding: 100px 24px; }
