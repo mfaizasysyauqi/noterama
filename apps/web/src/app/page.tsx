@@ -64,6 +64,7 @@ export default function LandingPage() {
   const [messages, setMessages] = useState<Message[]>(INIT_MESSAGES);
   const [busy, setBusy] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => {
