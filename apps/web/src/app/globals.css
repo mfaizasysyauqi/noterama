@@ -60,13 +60,10 @@
 html, body {
   min-height: 100%;
   width: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
   background: var(--bg-activity);
   color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: 13px;
-  user-select: none;
 }
 
 /* ─── Scrollbars ─────────────────────────────────────────────────────────── */

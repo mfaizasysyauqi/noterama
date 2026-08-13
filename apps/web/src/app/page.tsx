@@ -435,6 +435,7 @@ export default function LandingPage() {
           color: #e2e8f0;
           font-family: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
           min-height: 100vh;
+          overflow-x: clip;
         }
 
         /* ── Nav (mfaizasysyauqi style) ──────────────────── */
