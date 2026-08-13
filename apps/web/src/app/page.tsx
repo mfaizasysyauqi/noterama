@@ -12,7 +12,6 @@ import {
   Lock,
   Terminal,
   ArrowUpRight,
-  CheckCircle2,
 } from 'lucide-react';
 
 /* ─── types ─── */
@@ -615,10 +614,14 @@ export default function LandingPage() {
         }
         .lp-demo-body {
           padding: 16px;
-          height: 360px;
+          height: 340px;
+          min-height: 260px;
           display: flex;
           flex-direction: column;
           overflow: hidden;
+        }
+        @media (max-width: 900px) {
+          .lp-demo-body { height: auto; min-height: 300px; }
         }
 
         /* Chat */
@@ -896,7 +899,8 @@ export default function LandingPage() {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 16px;
+          flex-wrap: wrap;
+          gap: 12px 16px;
           font-size: 12.5px;
           color: #334155;
         }
@@ -914,23 +918,37 @@ export default function LandingPage() {
 
         /* ── Responsive ──────────────────────────────────── */
         @media (max-width: 900px) {
+          .lp-hero {
+            min-height: unset;
+            padding: 64px 24px 48px;
+          }
           .lp-hero-inner,
           .lp-features-inner {
             grid-template-columns: 1fr;
-            gap: 40px;
+            gap: 36px;
           }
           .lp-features-lead { position: static; }
           .lp-stats-inner {
             grid-template-columns: 1fr 1fr;
+            gap: 20px;
           }
           .lp-nav-links { display: none; }
+          .lp-features { padding: 72px 24px; }
+          .lp-cta-section { padding: 80px 24px; }
         }
         @media (max-width: 540px) {
-          .lp-stats-inner { grid-template-columns: 1fr; }
+          .lp-stats-inner { grid-template-columns: 1fr 1fr; }
           .lp-h1 { font-size: 36px; }
-          .lp-hero { padding: 60px 16px 40px; }
-          .lp-features { padding: 60px 16px; }
-          .lp-cta-section { padding: 80px 16px; }
+          .lp-hero { padding: 48px 16px 36px; }
+          .lp-nav-inner { padding: 0 16px; }
+          .lp-features { padding: 56px 16px; }
+          .lp-cta-section { padding: 64px 16px; }
+          .lp-stack-strip { padding: 16px; }
+          .lp-hero-actions { flex-direction: column; align-items: flex-start; }
+          .lp-footer-inner { flex-direction: column; align-items: flex-start; }
+          .lp-footer-copy { text-align: left; }
+          .lp-stats-strip .lp-stats-inner { padding: 28px 16px; }
+          .lp-cta-inner { padding: 0; }
         }
       `}</style>
     </div>
