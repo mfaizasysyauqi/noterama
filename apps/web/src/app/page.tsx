@@ -1,487 +1,938 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import {
-  Sparkles,
   ArrowRight,
-  Folder,
+  Github,
   FolderOpen,
   FileText,
   Bot,
   Database,
-  ShieldCheck,
-  Zap,
-  Layers,
-  Headphones,
-  Github,
-  CheckCircle2,
-  ChevronRight,
-  LayoutGrid,
-  Cpu,
   Lock,
-  Code2,
   Terminal,
-  Server,
-  Command,
   ArrowUpRight,
+  CheckCircle2,
 } from 'lucide-react';
 
-export default function AntiSlopLandingPage() {
-  const [activeDemoTab, setActiveDemoTab] = useState<'explorer' | 'editor' | 'agent'>('agent');
-  const [demoQuery, setDemoQuery] = useState('Tolong rangkum semua file di folder AI Research');
-  const [demoMessages, setDemoMessages] = useState<Array<{ role: string; content: string }>>([
-    {
-      role: 'assistant',
-      content: '**Noterama Agent Active.** Reading 4 workspace files & 2 nested folders...',
-    },
-  ]);
-  const [isSimulating, setIsSimulating] = useState(false);
+/* ─── types ─── */
+type DemoTab = 'agent' | 'explorer' | 'editor';
+type Message = { role: 'user' | 'assistant'; content: string };
 
-  const handleSimulateChat = (e: React.FormEvent) => {
+const INIT_MESSAGES: Message[] = [
+  {
+    role: 'assistant',
+    content: 'Noterama Agent active. Loaded 6 workspace files across 3 folders. What do you need?',
+  },
+];
+
+/* ─── Animated counter ─── */
+function Counter({ to, duration = 1400 }: { to: number; duration?: number }) {
+  const [val, setVal] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started.current) {
+          started.current = true;
+          const start = performance.now();
+          const tick = (now: number) => {
+            const progress = Math.min((now - start) / duration, 1);
+            const ease = 1 - Math.pow(1 - progress, 4);
+            setVal(Math.round(ease * to));
+            if (progress < 1) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+        }
+      },
+      { threshold: 0.6 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [to, duration]);
+
+  return <span ref={ref}>{val}</span>;
+}
+
+/* ─── Main page ─── */
+export default function LandingPage() {
+  const [tab, setTab] = useState<DemoTab>('agent');
+  const [query, setQuery] = useState('Summarize everything in my AI Research folder');
+  const [messages, setMessages] = useState<Message[]>(INIT_MESSAGES);
+  const [busy, setBusy] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollChat = () =>
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+
+  useEffect(() => {
+    scrollChat();
+  }, [messages]);
+
+  const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!demoQuery.trim() || isSimulating) return;
-    const q = demoQuery;
-    setDemoQuery('');
-    setDemoMessages(prev => [...prev, { role: 'user', content: q }]);
-    setIsSimulating(true);
-
+    if (!query.trim() || busy) return;
+    const q = query.trim();
+    setQuery('');
+    setMessages(prev => [...prev, { role: 'user', content: q }]);
+    setBusy(true);
     setTimeout(() => {
-      setDemoMessages(prev => [
+      setMessages(prev => [
         ...prev,
         {
           role: 'assistant',
-          content: `Rangkuman Folder **AI Research**:\n\n1. **agent-context.md** — Berisi konfigurasi prompt & memori hirarki folder.\n2. **groq-models.md** — Daftar model Groq termasuk Llama 3.3 70B & Mixtral.\n\nSemua file ini tersimpan aman di Supabase database kamu!`,
+          content:
+            'Found 4 files in AI Research:\n\n• **agent-context.md** — Prompt hierarchy & memory config\n• **groq-models.md** — Llama 3.3, Mixtral, Gemma model list\n• **benchmarks.md** — Latency comparisons\n• **notes.md** — Raw session notes\n\nAll persisted in your Supabase instance.',
         },
       ]);
-      setIsSimulating(false);
-    }, 600);
+      setBusy(false);
+    }, 700);
   };
 
   return (
-    <div style={{ background: '#080a0f', color: '#e2e8f0', minHeight: '100vh', fontFamily: 'Inter, system-ui, -apple-system, sans-serif' }}>
-      
-      {/* ── Top Announcement Bar ────────────────────────────────────────────── */}
-      <div style={{
-        background: '#0d1117', borderBottom: '1px solid #1e2638',
-        padding: '8px 16px', textAlign: 'center', fontSize: 12, color: '#94a3b8',
-        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8
-      }}>
-        <span style={{ background: 'rgba(56, 189, 248, 0.15)', color: '#38bdf8', padding: '1px 6px', borderRadius: 4, fontWeight: 600, fontSize: 11 }}>NEW</span>
-        <span>Noterama Studio v2.0 is live with Supabase Multi-Session AI History</span>
-        <Link href="/studio" style={{ color: '#38bdf8', textDecoration: 'none', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-          Launch App <ArrowRight size={12} />
-        </Link>
-      </div>
+    <div className="lp-root">
+      {/* ── Navbar ─────────────────────────────────────────────────────── */}
+      <header className="lp-nav">
+        <div className="lp-nav-inner">
+          <Link href="/" className="lp-logo">
+            <span className="lp-logo-mark">N</span>
+            <span>oterama</span>
+          </Link>
 
-      {/* ── Navbar ───────────────────────────────────────────────────────────── */}
-      <nav style={{
-        position: 'sticky', top: 0, zIndex: 100,
-        backdropFilter: 'blur(12px)', background: 'rgba(8, 10, 15, 0.85)',
-        borderBottom: '1px solid #191f2e',
-        padding: '0 28px', height: 60, display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 28, height: 28, borderRadius: 6,
-            background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 0 12px rgba(56, 189, 248, 0.3)'
-          }}>
-            <Sparkles size={15} style={{ color: '#ffffff' }} />
-          </div>
-          <span style={{ fontWeight: 700, fontSize: 15, color: '#f8fafc', letterSpacing: '-0.02em' }}>
-            Noterama <span style={{ color: '#38bdf8', fontSize: 11, fontWeight: 600, marginLeft: 2, padding: '2px 6px', borderRadius: 4, background: 'rgba(56, 189, 248, 0.1)', border: '1px solid rgba(56, 189, 248, 0.2)' }}>STUDIO</span>
-          </span>
-        </div>
+          <nav className="lp-nav-links">
+            <a href="#product">Product</a>
+            <a href="#stack">Stack</a>
+            <a
+              href="https://github.com/mfaizasysyauqi/noterama"
+              target="_blank"
+              rel="noreferrer"
+              className="lp-nav-gh"
+            >
+              <Github size={14} />
+              <span>GitHub</span>
+            </a>
+          </nav>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 28, fontSize: 13, fontWeight: 500 }} className="desktop-only">
-          <a href="#demo" style={{ color: '#94a3b8', textDecoration: 'none', transition: 'color 0.2s' }}>Live Interactive Demo</a>
-          <a href="#features" style={{ color: '#94a3b8', textDecoration: 'none', transition: 'color 0.2s' }}>Core Features</a>
-          <a href="#architecture" style={{ color: '#94a3b8', textDecoration: 'none', transition: 'color 0.2s' }}>System Architecture</a>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <a
-            href="https://github.com/mfaizasysyauqi/noterama"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 6,
-              background: '#131824', border: '1px solid #232d42',
-              color: '#cbd5e1', fontSize: 12.5, fontWeight: 500, textDecoration: 'none'
-            }}
-          >
-            <Github size={14} />
-            <span className="desktop-only">GitHub</span>
-          </a>
-          <Link
-            href="/studio"
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '7px 16px', borderRadius: 6,
-              background: '#0284c7', color: '#ffffff', fontSize: 12.5, fontWeight: 600, textDecoration: 'none',
-              boxShadow: '0 0 16px rgba(2, 132, 199, 0.35)', transition: 'background 0.2s'
-            }}
-          >
-            <span>Launch Studio</span>
-            <ArrowRight size={13} />
+          <Link href="/studio" className="lp-cta-nav">
+            Open Studio <ArrowRight size={13} />
           </Link>
         </div>
-      </nav>
+      </header>
 
-      {/* ── Editorial Hero Section (Anti-AI-Slop Layout) ──────────────────── */}
-      <section style={{ padding: '80px 28px 60px', maxWidth: 1200, margin: '0 auto' }}>
-        
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 48, alignItems: 'center' }}>
-          
-          {/* Left Column: Stark Typographic Pitch */}
-          <div>
-            <div style={{
-              display: 'inline-flex', alignItems: 'center', gap: 6, padding: '4px 10px', borderRadius: 4,
-              background: '#121826', border: '1px solid #232e47',
-              color: '#38bdf8', fontSize: 11, fontWeight: 600, fontFamily: 'monospace', marginBottom: 20
-            }}>
-              <span>01 // BESPOKE KNOWLEDGE ENGINE</span>
-            </div>
+      {/* ── Hero ───────────────────────────────────────────────────────── */}
+      <section className="lp-hero">
+        <div className="lp-hero-inner">
+          {/* Left: Copy */}
+          <div className="lp-hero-copy">
+            <p className="lp-kicker">Markdown workspace · Groq AI · Supabase</p>
 
-            <h1 style={{
-              fontSize: 'clamp(36px, 4.5vw, 54px)', fontWeight: 800, color: '#f8fafc',
-              lineHeight: 1.08, letterSpacing: '-0.03em', margin: '0 0 20px'
-            }}>
-              Modular Markdown Canvas.<br />
-              <span style={{ color: '#38bdf8' }}>Full-Context AI Agent.</span>
+            <h1 className="lp-h1">
+              Notes that<br />
+              <em>think with you.</em>
             </h1>
 
-            <p style={{ fontSize: 16, color: '#94a3b8', lineHeight: 1.6, margin: '0 0 32px', maxWidth: 520 }}>
-              Noterama Studio is an open, high-performance workspace designed for developers.
-              Enjoy Notion-style card editing, infinite nested folders, real-time Supabase sync, and an AI Agent that understands your entire workspace tree.
+            <p className="lp-sub">
+              A high-performance markdown workspace with an AI agent that understands
+              your entire folder tree — and remembers every session.
             </p>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 40 }}>
-              <Link
-                href="/studio"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '12px 24px', borderRadius: 8,
-                  background: '#0284c7', color: '#ffffff', fontSize: 14, fontWeight: 600, textDecoration: 'none',
-                  boxShadow: '0 0 24px rgba(2, 132, 199, 0.4)'
-                }}
-              >
-                <span>Open Studio Workspace</span>
-                <ArrowRight size={15} />
+            <div className="lp-hero-actions">
+              <Link href="/studio" className="lp-btn-primary">
+                Open Studio <ArrowRight size={15} />
               </Link>
-
               <a
                 href="https://github.com/mfaizasysyauqi/noterama"
                 target="_blank"
                 rel="noreferrer"
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px', borderRadius: 8,
-                  background: '#131824', border: '1px solid #232e47',
-                  color: '#e2e8f0', fontSize: 14, fontWeight: 500, textDecoration: 'none'
-                }}
+                className="lp-btn-ghost"
               >
-                <Github size={16} />
-                <span>View Source</span>
+                <Github size={15} /> View Source
               </a>
             </div>
-
-            {/* Micro Feature Bullet Points */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, borderTop: '1px solid #192030', paddingTop: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cbd5e1' }}>
-                <CheckCircle2 size={15} style={{ color: '#10b981', flexShrink: 0 }} />
-                <span>Infinite Folder Nesting</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cbd5e1' }}>
-                <CheckCircle2 size={15} style={{ color: '#38bdf8', flexShrink: 0 }} />
-                <span>Multi-Session Chat History</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cbd5e1' }}>
-                <CheckCircle2 size={15} style={{ color: '#e2b13c', flexShrink: 0 }} />
-                <span>Supabase RLS Persistence</span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#cbd5e1' }}>
-                <CheckCircle2 size={15} style={{ color: '#c084fc', flexShrink: 0 }} />
-                <span>BYOK Groq AI Engine</span>
-              </div>
-            </div>
-
           </div>
 
-          {/* Right Column: Live Interactive Demo Workspace Simulator */}
-          <div id="demo" style={{
-            background: '#0d111a', border: '1px solid #1e283d', borderRadius: 12, overflow: 'hidden',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.6)'
-          }}>
-            {/* Window Header */}
-            <div style={{
-              height: 38, background: '#131824', borderBottom: '1px solid #1e283d', padding: '0 14px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
-            }}>
-              <div style={{ display: 'flex', gap: 6 }}>
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#ef4444' }} />
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#f59e0b' }} />
-                <div style={{ width: 9, height: 9, borderRadius: '50%', background: '#10b981' }} />
+          {/* Right: Live Demo Window */}
+          <div className="lp-demo-wrap" id="product">
+            {/* macOS-style chrome */}
+            <div className="lp-demo-chrome">
+              <div className="lp-traffic">
+                <span className="lp-dot red" />
+                <span className="lp-dot amber" />
+                <span className="lp-dot green" />
               </div>
-
-              {/* Demo Tabs */}
-              <div style={{ display: 'flex', gap: 4, background: '#090c12', padding: 2, borderRadius: 6, border: '1px solid #1b2336' }}>
-                {[
-                  { id: 'agent', label: 'AI Agent' },
-                  { id: 'explorer', label: 'Explorer' },
-                  { id: 'editor', label: 'Notion Canvas' },
-                ].map(t => (
+              <div className="lp-tab-row">
+                {(['agent', 'explorer', 'editor'] as DemoTab[]).map(t => (
                   <button
-                    key={t.id}
-                    onClick={() => setActiveDemoTab(t.id as any)}
-                    style={{
-                      background: activeDemoTab === t.id ? '#1e283d' : 'transparent',
-                      border: 'none', color: activeDemoTab === t.id ? '#f8fafc' : '#64748b',
-                      fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 4, cursor: 'pointer'
-                    }}
+                    key={t}
+                    onClick={() => setTab(t)}
+                    className={`lp-tab ${tab === t ? 'lp-tab-active' : ''}`}
                   >
-                    {t.label}
+                    {t === 'agent' ? 'AI Agent' : t === 'explorer' ? 'Files' : 'Canvas'}
                   </button>
                 ))}
               </div>
-
-              <span style={{ fontSize: 10, color: '#10b981', fontFamily: 'monospace' }}>LIVE DEMO</span>
+              <span className="lp-live-badge">● LIVE</span>
             </div>
 
-            {/* Interactive Tab 1: AI Agent Simulator */}
-            {activeDemoTab === 'agent' && (
-              <div style={{ padding: 16, height: 380, display: 'flex', flexDirection: 'column' }}>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>SESSION: <strong>AI Research Summary</strong></span>
-                  <span style={{ background: 'rgba(56, 189, 248, 0.1)', color: '#38bdf8', padding: '1px 6px', borderRadius: 3, fontSize: 10 }}>llama-3.3-70b-versatile</span>
-                </div>
-
-                <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 10, paddingRight: 4 }}>
-                  {demoMessages.map((m, i) => (
-                    <div key={i} style={{
-                      background: m.role === 'user' ? '#1e293b' : '#111726',
-                      border: m.role === 'user' ? '1px solid #2d3b54' : '1px solid #1c2538',
-                      borderRadius: 8, padding: '8px 12px', fontSize: 12, color: m.role === 'user' ? '#f8fafc' : '#cbd5e1',
-                      alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%'
-                    }}>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: m.role === 'user' ? '#38bdf8' : '#e2b13c', marginBottom: 3 }}>
-                        {m.role === 'user' ? 'YOU' : 'NOTERAMA AGENT'}
-                      </div>
-                      <div style={{ lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{m.content}</div>
+            {/* Tab: Agent */}
+            {tab === 'agent' && (
+              <div className="lp-demo-body">
+                <div className="lp-chat-log">
+                  {messages.map((m, i) => (
+                    <div key={i} className={`lp-msg lp-msg-${m.role}`}>
+                      <span className="lp-msg-label">
+                        {m.role === 'user' ? 'You' : 'Agent'}
+                      </span>
+                      <p className="lp-msg-text">{m.content}</p>
                     </div>
                   ))}
-                  {isSimulating && (
-                    <div style={{ fontSize: 11, color: '#38bdf8', fontStyle: 'italic' }}>Agent is reading workspace context…</div>
-                  )}
+                  {busy && <p className="lp-thinking">Agent is reading…</p>}
+                  <div ref={chatEndRef} />
                 </div>
-
-                <form onSubmit={handleSimulateChat} style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+                <form className="lp-chat-form" onSubmit={sendMessage}>
                   <input
-                    value={demoQuery}
-                    onChange={e => setDemoQuery(e.target.value)}
-                    placeholder="Try typing a question..."
-                    style={{
-                      flex: 1, background: '#131926', border: '1px solid #222d45', borderRadius: 6,
-                      padding: '8px 12px', fontSize: 12, color: '#f8fafc', outline: 'none'
-                    }}
+                    className="lp-chat-input"
+                    value={query}
+                    onChange={e => setQuery(e.target.value)}
+                    placeholder="Ask your workspace anything…"
                   />
-                  <button type="submit" style={{
-                    background: '#0284c7', border: 'none', color: 'white', borderRadius: 6,
-                    padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer'
-                  }}>
+                  <button type="submit" className="lp-chat-send">
                     Send
                   </button>
                 </form>
               </div>
             )}
 
-            {/* Interactive Tab 2: Explorer Simulator */}
-            {activeDemoTab === 'explorer' && (
-              <div style={{ padding: 16, height: 380, overflowY: 'auto', fontSize: 12.5 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#475569', letterSpacing: '0.05em', marginBottom: 12 }}>WORKSPACE FILE TREE</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f8fafc', fontWeight: 600, padding: '4px 0' }}>
-                  <FolderOpen size={14} style={{ color: '#e2b13c' }} />
-                  <span>AI Research</span>
+            {/* Tab: Files */}
+            {tab === 'explorer' && (
+              <div className="lp-demo-body lp-tree">
+                <p className="lp-tree-label">WORKSPACE</p>
+                <div className="lp-tree-row lp-tree-folder">
+                  <FolderOpen size={13} /> AI Research
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0 4px 20px', color: '#38bdf8' }}>
-                  <FileText size={13} />
-                  <span>agent-context.md</span>
+                <div className="lp-tree-row lp-tree-file indent">
+                  <FileText size={12} /> agent-context.md
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0 4px 20px', color: '#94a3b8' }}>
-                  <FileText size={13} />
-                  <span>groq-models.md</span>
+                <div className="lp-tree-row lp-tree-file indent">
+                  <FileText size={12} /> groq-models.md
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: '#f8fafc', fontWeight: 600, padding: '8px 0 4px' }}>
-                  <FolderOpen size={14} style={{ color: '#e2b13c' }} />
-                  <span>Portfolio</span>
+                <div className="lp-tree-row lp-tree-folder" style={{ marginTop: 8 }}>
+                  <FolderOpen size={13} /> Portfolio
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 0 4px 20px', color: '#94a3b8' }}>
-                  <FileText size={13} />
-                  <span>README.md</span>
+                <div className="lp-tree-row lp-tree-file indent">
+                  <FileText size={12} /> README.md
                 </div>
-
-                <div style={{ marginTop: 24, padding: 12, background: '#111726', border: '1px solid #1d273c', borderRadius: 8, fontSize: 11, color: '#94a3b8' }}>
-                  💡 <strong>Drag & Drop & Circular Protection:</strong> Moving subfolders into child folders is automatically detected and blocked to keep your file tree pristine.
+                <div className="lp-tree-row lp-tree-file indent">
+                  <FileText size={12} /> design-notes.md
+                </div>
+                <div className="lp-info-pill">
+                  Drag & drop with circular-folder protection built in.
                 </div>
               </div>
             )}
 
-            {/* Interactive Tab 3: Notion Canvas Simulator */}
-            {activeDemoTab === 'editor' && (
-              <div style={{ padding: 16, height: 380, overflowY: 'auto' }}>
-                <div style={{ background: '#111726', border: '1px solid #1e283d', borderRadius: 8, padding: 14, marginBottom: 12 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: 13 }}>Notion Card Block</span>
-                    <span style={{ fontSize: 11, color: '#64748b' }}>@August 13, 2026</span>
+            {/* Tab: Canvas */}
+            {tab === 'editor' && (
+              <div className="lp-demo-body">
+                <div className="lp-card-block">
+                  <div className="lp-card-block-header">
+                    <span>Notion Card Block</span>
+                    <span className="lp-date">Aug 13 2026</span>
                   </div>
-                  <p style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.5, margin: 0 }}>
-                    Markdown content is automatically parsed into modular note cards. Edit dates, titles, or body text with 300ms debounced autosave.
+                  <p>
+                    Markdown is parsed into modular note cards. Edit title, date, or body
+                    with 300ms debounced autosave.
                   </p>
                 </div>
-                <div style={{ background: '#111726', border: '1px solid #1e283d', borderRadius: 8, padding: 14 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                    <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: 13 }}>Audio Speech Synthesizer</span>
-                    <span style={{ fontSize: 11, color: '#64748b' }}>@August 13, 2026</span>
+                <div className="lp-card-block" style={{ marginTop: 12 }}>
+                  <div className="lp-card-block-header">
+                    <span>Audio Overview</span>
+                    <span className="lp-date">Aug 13 2026</span>
                   </div>
-                  <p style={{ color: '#cbd5e1', fontSize: 12, lineHeight: 1.5, margin: 0 }}>
-                    Click the audio overview button to hear an AI voice summary of your current file.
-                  </p>
+                  <p>Click the audio button for an AI voice summary of your current file.</p>
                 </div>
               </div>
             )}
           </div>
-
         </div>
-
       </section>
 
-      {/* ── Technical Bento Grid (Structured & Bespoke) ──────────────────── */}
-      <section id="features" style={{ padding: '80px 28px', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 40, borderBottom: '1px solid #192030', paddingBottom: 20 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#38bdf8', fontFamily: 'monospace', letterSpacing: '0.05em', marginBottom: 6 }}>02 // SYSTEM CAPABILITIES</div>
-            <h2 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', letterSpacing: '-0.02em', margin: 0 }}>Engineered for Developers</h2>
+      {/* ── Stats strip ────────────────────────────────────────────────── */}
+      <div className="lp-stats-strip">
+        <div className="lp-stats-inner">
+          {[
+            { n: 100, suffix: '%', label: 'Open source' },
+            { n: 0, suffix: ' sign-ups', label: 'Needed to start' },
+            { n: 4, suffix: ' AI models', label: 'Supported out of box' },
+            { n: 300, suffix: 'ms', label: 'Autosave debounce' },
+          ].map(({ n, suffix, label }) => (
+            <div key={label} className="lp-stat">
+              <span className="lp-stat-n">
+                <Counter to={n} />
+                {suffix}
+              </span>
+              <span className="lp-stat-label">{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Feature section ────────────────────────────────────────────── */}
+      <section className="lp-features" id="stack">
+        <div className="lp-features-inner">
+          {/* Left: big text */}
+          <div className="lp-features-lead">
+            <h2 className="lp-h2">
+              Built for the way developers actually work.
+            </h2>
+            <p className="lp-features-sub">
+              No vendor lock-in. No opaque sync. Bring your own API keys, run against your
+              own Supabase instance, and own every byte.
+            </p>
+            <Link href="/studio" className="lp-btn-primary lp-btn-sm">
+              Try it free <ArrowUpRight size={14} />
+            </Link>
           </div>
-          <Link href="/studio" style={{ color: '#38bdf8', textDecoration: 'none', fontSize: 13, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 4 }}>
-            Explore Studio Workspace <ArrowUpRight size={14} />
+
+          {/* Right: feature list (not cards) */}
+          <ul className="lp-feature-list">
+            {[
+              {
+                icon: <Bot size={18} />,
+                title: 'Full-context AI agent',
+                desc: 'Reads all files and folders at query time. Multi-session history persisted in Supabase.',
+              },
+              {
+                icon: <FolderOpen size={18} />,
+                title: 'Infinite nested folders',
+                desc: 'Drag & drop with circular-move protection. Folder state survives browser restarts.',
+              },
+              {
+                icon: <Database size={18} />,
+                title: 'Supabase cloud sync',
+                desc: 'Row-Level Security policies keep your data yours. Auto-generated SQL setup.',
+              },
+              {
+                icon: <Lock size={18} />,
+                title: 'BYOK privacy model',
+                desc: 'Your Groq API key never leaves your browser session. Zero telemetry.',
+              },
+              {
+                icon: <Terminal size={18} />,
+                title: 'Groq streaming responses',
+                desc: 'Llama 3.3 70B with token-level streaming. Feels instant at any file size.',
+              },
+            ].map(({ icon, title, desc }) => (
+              <li key={title} className="lp-feature-item">
+                <span className="lp-feature-icon">{icon}</span>
+                <div>
+                  <strong>{title}</strong>
+                  <p>{desc}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* ── Tech stack strip ───────────────────────────────────────────── */}
+      <div className="lp-stack-strip">
+        <div className="lp-stack-inner">
+          {[
+            'Next.js 15',
+            'React 19',
+            'Supabase',
+            'Groq (Llama 3.3)',
+            'Tailwind v4',
+            'TypeScript',
+            'PostgreSQL',
+          ].map(t => (
+            <span key={t} className="lp-stack-pill">{t}</span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── CTA section ─────────────────────────────────────────────────── */}
+      <section className="lp-cta-section">
+        <div className="lp-cta-inner">
+          <h2 className="lp-h2">Your workspace. Your data. Your AI.</h2>
+          <p>
+            Open Noterama Studio directly in your browser. No account, no cloud dependency — unless you want it.
+          </p>
+          <Link href="/studio" className="lp-btn-primary lp-btn-lg">
+            Launch Noterama Studio <ArrowRight size={16} />
           </Link>
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 20 }}>
-          
-          {/* Card 1 */}
-          <div style={{ background: '#0e121b', border: '1px solid #1d2536', borderRadius: 10, padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 6, background: 'rgba(56, 189, 248, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8' }}>
-                <Bot size={20} />
-              </div>
-              <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#64748b' }}>AI AGENT</span>
-            </div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#f8fafc', margin: '0 0 8px' }}>Full-Context Memory</h3>
-            <p style={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-              The agent reads all files & nested folders dynamically. Multi-session history is saved to Supabase so your context is never lost.
-            </p>
-          </div>
-
-          {/* Card 2 */}
-          <div style={{ background: '#0e121b', border: '1px solid #1d2536', borderRadius: 10, padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 6, background: 'rgba(226, 177, 60, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e2b13c' }}>
-                <Layers size={20} />
-              </div>
-              <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#64748b' }}>FILE TREE</span>
-            </div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#f8fafc', margin: '0 0 8px' }}>Infinite Nested Folders</h3>
-            <p style={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-              Drag & drop files into nested subfolders. Root files stay clean, while folder hierarchy maps persist across browser restarts.
-            </p>
-          </div>
-
-          {/* Card 3 */}
-          <div style={{ background: '#0e121b', border: '1px solid #1d2536', borderRadius: 10, padding: 24 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 6, background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981' }}>
-                <Database size={20} />
-              </div>
-              <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#64748b' }}>SUPABASE DB</span>
-            </div>
-            <h3 style={{ fontSize: 17, fontWeight: 700, color: '#f8fafc', margin: '0 0 8px' }}>Supabase Cloud Sync</h3>
-            <p style={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.6, margin: 0 }}>
-              Zero-config database sync with custom SQL setup generator & Row-Level Security (RLS) policies for complete data ownership.
-            </p>
-          </div>
-
-        </div>
       </section>
 
-      {/* ── System Architecture Section ───────────────────────────────────── */}
-      <section id="architecture" style={{ padding: '60px 28px 80px', maxWidth: 1200, margin: '0 auto' }}>
-        <div style={{ background: '#0c0f17', border: '1px solid #1d263b', borderRadius: 12, padding: 36 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#c084fc', fontFamily: 'monospace', letterSpacing: '0.05em', marginBottom: 8 }}>03 // ARCHITECTURE & STACK</div>
-          <h2 style={{ fontSize: 26, fontWeight: 800, color: '#f8fafc', margin: '0 0 24px' }}>Tech Stack & Data Flow</h2>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16, textAlign: 'center' }}>
-            <div style={{ background: '#121724', border: '1px solid #202a3f', padding: 20, borderRadius: 8 }}>
-              <Code2 size={24} style={{ color: '#38bdf8', marginBottom: 8 }} />
-              <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: 14 }}>Next.js 15</div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>App Router & Turbopack</div>
-            </div>
-
-            <div style={{ background: '#121724', border: '1px solid #202a3f', padding: 20, borderRadius: 8 }}>
-              <Cpu size={24} style={{ color: '#e2b13c', marginBottom: 8 }} />
-              <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: 14 }}>Groq AI Engine</div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Llama 3.3 70B Streaming</div>
-            </div>
-
-            <div style={{ background: '#121724', border: '1px solid #202a3f', padding: 20, borderRadius: 8 }}>
-              <Server size={24} style={{ color: '#10b981', marginBottom: 8 }} />
-              <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: 14 }}>Supabase DB</div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>PostgreSQL + RLS Policies</div>
-            </div>
-
-            <div style={{ background: '#121724', border: '1px solid #202a3f', padding: 20, borderRadius: 8 }}>
-              <Lock size={24} style={{ color: '#c084fc', marginBottom: 8 }} />
-              <div style={{ fontWeight: 700, color: '#f8fafc', fontSize: 14 }}>BYOK Security</div>
-              <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>Local Key Encryption</div>
-            </div>
-          </div>
+      {/* ── Footer ──────────────────────────────────────────────────────── */}
+      <footer className="lp-footer">
+        <div className="lp-footer-inner">
+          <span className="lp-logo" style={{ fontSize: 13 }}>
+            <span className="lp-logo-mark" style={{ width: 20, height: 20, fontSize: 11 }}>N</span>
+            Noterama
+          </span>
+          <span className="lp-footer-copy">
+            © {new Date().getFullYear()} — Built with Next.js, Supabase & Groq
+          </span>
+          <a
+            href="https://github.com/mfaizasysyauqi/noterama"
+            target="_blank"
+            rel="noreferrer"
+            className="lp-footer-gh"
+          >
+            <Github size={14} /> Source
+          </a>
         </div>
-      </section>
-
-      {/* ── Final Call to Action ────────────────────────────────────────────── */}
-      <section style={{ padding: '80px 28px', textAlign: 'center', borderTop: '1px solid #192030', background: '#090c12' }}>
-        <h2 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 16px', letterSpacing: '-0.02em' }}>
-          Start Building Your Workspace Now
-        </h2>
-        <p style={{ color: '#94a3b8', fontSize: 15, maxWidth: 540, margin: '0 auto 32px' }}>
-          Open Noterama Studio in your browser. No sign-up required to test local features.
-        </p>
-        <Link
-          href="/studio"
-          style={{
-            display: 'inline-flex', alignItems: 'center', gap: 10, padding: '14px 32px', borderRadius: 8,
-            background: '#0284c7', color: '#ffffff', fontSize: 15, fontWeight: 700, textDecoration: 'none',
-            boxShadow: '0 0 24px rgba(2, 132, 199, 0.4)'
-          }}
-        >
-          <span>Launch Noterama Studio</span>
-          <ArrowRight size={16} />
-        </Link>
-      </section>
-
-      {/* ── Footer ──────────────────────────────────────────────────────────── */}
-      <footer style={{
-        padding: '28px 28px', borderTop: '1px solid #171d2b',
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        fontSize: 12.5, color: '#64748b', maxWidth: 1200, margin: '0 auto'
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Sparkles size={14} style={{ color: '#38bdf8' }} />
-          <span style={{ color: '#cbd5e1', fontWeight: 600 }}>Noterama Studio</span>
-          <span>© {new Date().getFullYear()}</span>
-        </div>
-        <div>Built with Next.js 15, React 19, Supabase & Groq AI</div>
       </footer>
 
+      <style>{`
+        /* ── Reset & tokens ─────────────────────────────── */
+        .lp-root {
+          background: #07090e;
+          color: #e2e8f0;
+          font-family: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
+          min-height: 100vh;
+        }
+
+        /* ── Nav ────────────────────────────────────────── */
+        .lp-nav {
+          position: sticky;
+          top: 0;
+          z-index: 50;
+          background: rgba(7,9,14,0.88);
+          backdrop-filter: blur(14px);
+          border-bottom: 1px solid #161c2a;
+        }
+        .lp-nav-inner {
+          max-width: 1160px;
+          margin: 0 auto;
+          padding: 0 24px;
+          height: 64px;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+        }
+        .lp-logo {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-size: 15px;
+          font-weight: 700;
+          color: #f8fafc;
+          text-decoration: none;
+          letter-spacing: -0.02em;
+          flex-shrink: 0;
+        }
+        .lp-logo-mark {
+          width: 26px;
+          height: 26px;
+          border-radius: 6px;
+          background: #0ea5e9;
+          color: #fff;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 13px;
+          font-weight: 800;
+          flex-shrink: 0;
+        }
+        .lp-nav-links {
+          display: flex;
+          align-items: center;
+          gap: 28px;
+          font-size: 13.5px;
+          color: #94a3b8;
+        }
+        .lp-nav-links a {
+          color: inherit;
+          text-decoration: none;
+          transition: color .2s;
+        }
+        .lp-nav-links a:hover { color: #f8fafc; }
+        .lp-nav-gh {
+          display: flex !important;
+          align-items: center;
+          gap: 5px;
+        }
+        .lp-cta-nav {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 7px 16px;
+          border-radius: 6px;
+          background: #0ea5e9;
+          color: #fff;
+          font-size: 13px;
+          font-weight: 600;
+          text-decoration: none;
+          white-space: nowrap;
+          transition: background .2s;
+        }
+        .lp-cta-nav:hover { background: #0284c7; }
+
+        /* ── Hero ───────────────────────────────────────── */
+        .lp-hero {
+          min-height: 100dvh;
+          display: flex;
+          align-items: center;
+          padding: 80px 24px 60px;
+          border-bottom: 1px solid #161c2a;
+        }
+        .lp-hero-inner {
+          max-width: 1160px;
+          margin: 0 auto;
+          width: 100%;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 56px;
+          align-items: center;
+        }
+        .lp-hero-copy { display: flex; flex-direction: column; }
+        .lp-kicker {
+          font-size: 11.5px;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+          color: #0ea5e9;
+          margin: 0 0 18px;
+        }
+        .lp-h1 {
+          font-size: clamp(40px, 5vw, 64px);
+          font-weight: 800;
+          line-height: 1.05;
+          letter-spacing: -0.04em;
+          color: #f8fafc;
+          margin: 0 0 20px;
+        }
+        .lp-h1 em {
+          font-style: italic;
+          color: #0ea5e9;
+        }
+        .lp-sub {
+          font-size: 16px;
+          color: #94a3b8;
+          line-height: 1.65;
+          max-width: 460px;
+          margin: 0 0 32px;
+        }
+        .lp-hero-actions {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+
+        /* ── Buttons ────────────────────────────────────── */
+        .lp-btn-primary {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 11px 22px;
+          border-radius: 7px;
+          background: #0ea5e9;
+          color: #fff;
+          font-size: 14px;
+          font-weight: 600;
+          text-decoration: none;
+          transition: background .2s, transform .1s;
+          white-space: nowrap;
+        }
+        .lp-btn-primary:hover { background: #0284c7; transform: translateY(-1px); }
+        .lp-btn-primary:active { transform: translateY(0) scale(0.98); }
+        .lp-btn-sm { font-size: 13px; padding: 9px 18px; }
+        .lp-btn-lg { font-size: 15px; padding: 13px 28px; }
+        .lp-btn-ghost {
+          display: inline-flex;
+          align-items: center;
+          gap: 7px;
+          padding: 11px 18px;
+          border-radius: 7px;
+          background: transparent;
+          border: 1px solid #1e293b;
+          color: #94a3b8;
+          font-size: 14px;
+          font-weight: 500;
+          text-decoration: none;
+          transition: border-color .2s, color .2s;
+        }
+        .lp-btn-ghost:hover { border-color: #334155; color: #e2e8f0; }
+
+        /* ── Demo window ────────────────────────────────── */
+        .lp-demo-wrap {
+          background: #0d111b;
+          border: 1px solid #1e2a3e;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 24px 64px rgba(0,0,0,.55);
+        }
+        .lp-demo-chrome {
+          height: 40px;
+          background: #111826;
+          border-bottom: 1px solid #1b2437;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 0 14px;
+        }
+        .lp-traffic { display: flex; gap: 5px; }
+        .lp-dot { width: 10px; height: 10px; border-radius: 50%; }
+        .lp-dot.red { background: #ef4444; }
+        .lp-dot.amber { background: #f59e0b; }
+        .lp-dot.green { background: #22c55e; }
+        .lp-tab-row {
+          display: flex;
+          gap: 2px;
+          background: #09101a;
+          border: 1px solid #1b2437;
+          border-radius: 5px;
+          padding: 2px;
+        }
+        .lp-tab {
+          background: transparent;
+          border: none;
+          padding: 3px 10px;
+          font-size: 11px;
+          font-weight: 600;
+          color: #475569;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background .15s, color .15s;
+        }
+        .lp-tab-active { background: #1e2a3e; color: #f8fafc; }
+        .lp-live-badge {
+          margin-left: auto;
+          font-size: 10px;
+          font-weight: 700;
+          color: #22c55e;
+          letter-spacing: 0.04em;
+          font-family: monospace;
+        }
+        .lp-demo-body {
+          padding: 16px;
+          height: 360px;
+          display: flex;
+          flex-direction: column;
+          overflow: hidden;
+        }
+
+        /* Chat */
+        .lp-chat-log {
+          flex: 1;
+          overflow-y: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+          padding-right: 4px;
+          scrollbar-width: thin;
+          scrollbar-color: #1e2a3e transparent;
+        }
+        .lp-msg { display: flex; flex-direction: column; gap: 3px; max-width: 88%; }
+        .lp-msg-user { align-self: flex-end; text-align: right; }
+        .lp-msg-assistant { align-self: flex-start; }
+        .lp-msg-label {
+          font-size: 9.5px;
+          font-weight: 700;
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }
+        .lp-msg-user .lp-msg-label { color: #0ea5e9; }
+        .lp-msg-assistant .lp-msg-label { color: #64748b; }
+        .lp-msg-text {
+          margin: 0;
+          font-size: 12px;
+          line-height: 1.55;
+          padding: 8px 12px;
+          border-radius: 8px;
+          white-space: pre-wrap;
+        }
+        .lp-msg-user .lp-msg-text { background: #1e293b; color: #f1f5f9; border: 1px solid #2d3b54; }
+        .lp-msg-assistant .lp-msg-text { background: #111726; color: #cbd5e1; border: 1px solid #1c2538; }
+        .lp-thinking { font-size: 11px; color: #0ea5e9; font-style: italic; padding-left: 4px; }
+        .lp-chat-form {
+          display: flex;
+          gap: 8px;
+          margin-top: 12px;
+          flex-shrink: 0;
+        }
+        .lp-chat-input {
+          flex: 1;
+          background: #111926;
+          border: 1px solid #1e2d47;
+          border-radius: 6px;
+          padding: 8px 12px;
+          font-size: 12px;
+          color: #f8fafc;
+          outline: none;
+          font-family: inherit;
+          transition: border-color .2s;
+        }
+        .lp-chat-input:focus { border-color: #0ea5e9; }
+        .lp-chat-input::placeholder { color: #475569; }
+        .lp-chat-send {
+          background: #0ea5e9;
+          border: none;
+          border-radius: 6px;
+          padding: 8px 14px;
+          font-size: 12px;
+          font-weight: 600;
+          color: #fff;
+          cursor: pointer;
+          transition: background .2s;
+          font-family: inherit;
+        }
+        .lp-chat-send:hover { background: #0284c7; }
+
+        /* Tree tab */
+        .lp-tree { gap: 0; }
+        .lp-tree-label {
+          font-size: 9.5px;
+          font-weight: 700;
+          letter-spacing: 0.08em;
+          color: #334155;
+          margin: 0 0 10px;
+        }
+        .lp-tree-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          padding: 4px 0;
+          font-size: 12.5px;
+        }
+        .lp-tree-folder { color: #f8fafc; font-weight: 600; }
+        .lp-tree-file { color: #94a3b8; }
+        .lp-tree-row.indent { padding-left: 20px; }
+        .lp-info-pill {
+          margin-top: 20px;
+          background: #111726;
+          border: 1px solid #1e283d;
+          border-radius: 7px;
+          padding: 10px 12px;
+          font-size: 11px;
+          color: #64748b;
+          line-height: 1.5;
+        }
+
+        /* Canvas tab */
+        .lp-card-block {
+          background: #111726;
+          border: 1px solid #1e283d;
+          border-radius: 8px;
+          padding: 14px;
+        }
+        .lp-card-block-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 6px;
+          font-weight: 700;
+          font-size: 13px;
+          color: #f8fafc;
+        }
+        .lp-card-block p {
+          margin: 0;
+          font-size: 12px;
+          color: #94a3b8;
+          line-height: 1.55;
+        }
+        .lp-date { font-size: 11px; font-weight: 400; color: #475569; }
+
+        /* ── Stats strip ─────────────────────────────────── */
+        .lp-stats-strip {
+          border-top: 1px solid #161c2a;
+          border-bottom: 1px solid #161c2a;
+          background: #090c12;
+        }
+        .lp-stats-inner {
+          max-width: 1160px;
+          margin: 0 auto;
+          padding: 36px 24px;
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 24px;
+        }
+        .lp-stat {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: 0 0 0 20px;
+          border-left: 2px solid #0ea5e9;
+        }
+        .lp-stat-n {
+          font-size: 26px;
+          font-weight: 800;
+          color: #f8fafc;
+          letter-spacing: -0.03em;
+          font-variant-numeric: tabular-nums;
+        }
+        .lp-stat-label { font-size: 12px; color: #64748b; }
+
+        /* ── Features section ────────────────────────────── */
+        .lp-features { padding: 100px 24px; }
+        .lp-features-inner {
+          max-width: 1160px;
+          margin: 0 auto;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 80px;
+          align-items: start;
+        }
+        .lp-features-lead { position: sticky; top: 100px; }
+        .lp-h2 {
+          font-size: clamp(28px, 3.2vw, 40px);
+          font-weight: 800;
+          letter-spacing: -0.03em;
+          color: #f8fafc;
+          line-height: 1.15;
+          margin: 0 0 16px;
+        }
+        .lp-features-sub {
+          font-size: 15px;
+          color: #64748b;
+          line-height: 1.65;
+          max-width: 380px;
+          margin: 0 0 28px;
+        }
+
+        .lp-feature-list {
+          list-style: none;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          flex-direction: column;
+        }
+        .lp-feature-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 16px;
+          padding: 22px 0;
+          border-bottom: 1px solid #161c2a;
+        }
+        .lp-feature-item:first-child { border-top: 1px solid #161c2a; }
+        .lp-feature-icon {
+          width: 34px;
+          height: 34px;
+          border-radius: 7px;
+          background: rgba(14, 165, 233, 0.08);
+          border: 1px solid rgba(14, 165, 233, 0.15);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #0ea5e9;
+          flex-shrink: 0;
+          margin-top: 1px;
+        }
+        .lp-feature-item strong {
+          display: block;
+          font-size: 14px;
+          font-weight: 700;
+          color: #f8fafc;
+          margin-bottom: 4px;
+        }
+        .lp-feature-item p {
+          margin: 0;
+          font-size: 13px;
+          color: #64748b;
+          line-height: 1.6;
+        }
+
+        /* ── Stack strip ─────────────────────────────────── */
+        .lp-stack-strip {
+          border-top: 1px solid #161c2a;
+          border-bottom: 1px solid #161c2a;
+          padding: 20px 24px;
+          background: #090c12;
+        }
+        .lp-stack-inner {
+          max-width: 1160px;
+          margin: 0 auto;
+          display: flex;
+          flex-wrap: wrap;
+          gap: 8px;
+          align-items: center;
+        }
+        .lp-stack-pill {
+          padding: 5px 13px;
+          border-radius: 100px;
+          border: 1px solid #1e293b;
+          font-size: 12px;
+          color: #64748b;
+          font-weight: 500;
+          letter-spacing: 0.01em;
+        }
+
+        /* ── CTA section ─────────────────────────────────── */
+        .lp-cta-section {
+          padding: 120px 24px;
+          border-top: 1px solid #161c2a;
+        }
+        .lp-cta-inner {
+          max-width: 680px;
+          margin: 0 auto;
+          text-align: left;
+        }
+        .lp-cta-inner p {
+          font-size: 16px;
+          color: #64748b;
+          line-height: 1.65;
+          margin: 0 0 32px;
+          max-width: 520px;
+        }
+
+        /* ── Footer ──────────────────────────────────────── */
+        .lp-footer {
+          border-top: 1px solid #0f1624;
+          background: #07090e;
+          padding: 24px;
+        }
+        .lp-footer-inner {
+          max-width: 1160px;
+          margin: 0 auto;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          font-size: 12.5px;
+          color: #334155;
+        }
+        .lp-footer-copy { flex: 1; text-align: center; }
+        .lp-footer-gh {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          color: #475569;
+          text-decoration: none;
+          font-size: 12.5px;
+          transition: color .2s;
+        }
+        .lp-footer-gh:hover { color: #94a3b8; }
+
+        /* ── Responsive ──────────────────────────────────── */
+        @media (max-width: 900px) {
+          .lp-hero-inner,
+          .lp-features-inner {
+            grid-template-columns: 1fr;
+            gap: 40px;
+          }
+          .lp-features-lead { position: static; }
+          .lp-stats-inner {
+            grid-template-columns: 1fr 1fr;
+          }
+          .lp-nav-links { display: none; }
+        }
+        @media (max-width: 540px) {
+          .lp-stats-inner { grid-template-columns: 1fr; }
+          .lp-h1 { font-size: 36px; }
+          .lp-hero { padding: 60px 16px 40px; }
+          .lp-features { padding: 60px 16px; }
+          .lp-cta-section { padding: 80px 16px; }
+        }
+      `}</style>
     </div>
   );
 }
