@@ -141,9 +141,39 @@ function renderDoc(md: string): React.ReactNode {
 }
 
 function renderChat(text: string): React.ReactNode {
-  return text.split('\n').map((line, i, arr) => (
-    <React.Fragment key={i}>{inlineMd(line)}{i < arr.length - 1 && <br />}</React.Fragment>
-  ));
+  const lines = text.split('\n');
+  const out: React.ReactNode[] = [];
+  let i = 0;
+  while (i < lines.length) {
+    const l = lines[i];
+    if (l.startsWith('# ')) {
+      out.push(<h1 key={i} style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-bright)', margin: '8px 0 4px', lineHeight: 1.2 }}>{inlineMd(l.slice(2))}</h1>);
+    } else if (l.startsWith('## ')) {
+      out.push(<h2 key={i} style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-bright)', margin: '8px 0 4px' }}>{inlineMd(l.slice(3))}</h2>);
+    } else if (l.startsWith('### ')) {
+      out.push(<h3 key={i} style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-bright)', margin: '6px 0 2px' }}>{inlineMd(l.slice(4))}</h3>);
+    } else if (l.startsWith('> ')) {
+      out.push(<blockquote key={i} style={{ borderLeft: '2px solid var(--accent-blue)', paddingLeft: 10, color: 'var(--text-secondary)', margin: '6px 0', fontStyle: 'italic' }}>{inlineMd(l.slice(2))}</blockquote>);
+    } else if (l.match(/^---+$/)) {
+      out.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '10px 0' }} />);
+    } else if (l.startsWith('- ') || l.startsWith('* ')) {
+      const items: string[] = [];
+      while (i < lines.length && (lines[i].startsWith('- ') || lines[i].startsWith('* '))) { items.push(lines[i].slice(2)); i++; }
+      out.push(<ul key={`ul${i}`} style={{ paddingLeft: 18, margin: '4px 0' }}>{items.map((t, j) => <li key={j} style={{ margin: '2px 0', lineHeight: 1.5, color: 'var(--text-primary)' }}>{inlineMd(t)}</li>)}</ul>);
+      continue;
+    } else if (/^\d+\. /.test(l)) {
+      const items: string[] = [];
+      while (i < lines.length && /^\d+\. /.test(lines[i])) { items.push(lines[i].replace(/^\d+\. /, '')); i++; }
+      out.push(<ol key={`ol${i}`} style={{ paddingLeft: 18, margin: '4px 0' }}>{items.map((t, j) => <li key={j} style={{ margin: '2px 0', lineHeight: 1.5, color: 'var(--text-primary)' }}>{inlineMd(t)}</li>)}</ol>);
+      continue;
+    } else if (l.trim() === '') {
+      out.push(<div key={i} style={{ height: 4 }} />);
+    } else {
+      out.push(<p key={i} style={{ margin: '2px 0', color: 'var(--text-primary)', lineHeight: 1.55, fontSize: 13 }}>{inlineMd(l)}</p>);
+    }
+    i++;
+  }
+  return <>{out}</>;
 }
 
 function isDescendantOrSelf(folderId: string, targetId: string, tree: FileItem[]): boolean {
