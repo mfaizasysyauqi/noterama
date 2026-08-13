@@ -337,19 +337,40 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Tech stack strip ───────────────────────────────────────────── */}
+      {/* ── Tech stack marquee strip ───────────────────────────────────── */}
       <div className="lp-stack-strip">
-        <div className="lp-stack-inner">
+        <div className="lp-marquee-track">
           {[
-            'Next.js 15',
-            'React 19',
-            'Supabase',
-            'Groq (Llama 3.3)',
-            'Tailwind v4',
-            'TypeScript',
-            'PostgreSQL',
-          ].map(t => (
-            <span key={t} className="lp-stack-pill">{t}</span>
+            { name: 'Next.js 15', icon: 'nextdotjs', color: 'ffffff' },
+            { name: 'React 19', icon: 'react', color: '61DAFB' },
+            { name: 'TypeScript', icon: 'typescript', color: '3178C6' },
+            { name: 'Supabase', icon: 'supabase', color: '3ECF8E' },
+            { name: 'Tailwind CSS', icon: 'tailwindcss', color: '06B6D4' },
+            { name: 'PostgreSQL', icon: 'postgresql', color: '4169E1' },
+            { name: 'Groq AI', icon: 'meta', color: '0467DF' },
+            { name: 'Node.js', icon: 'nodedotjs', color: '5FA04E' },
+            { name: 'Vercel', icon: 'vercel', color: 'ffffff' },
+          ].concat([
+            { name: 'Next.js 15', icon: 'nextdotjs', color: 'ffffff' },
+            { name: 'React 19', icon: 'react', color: '61DAFB' },
+            { name: 'TypeScript', icon: 'typescript', color: '3178C6' },
+            { name: 'Supabase', icon: 'supabase', color: '3ECF8E' },
+            { name: 'Tailwind CSS', icon: 'tailwindcss', color: '06B6D4' },
+            { name: 'PostgreSQL', icon: 'postgresql', color: '4169E1' },
+            { name: 'Groq AI', icon: 'meta', color: '0467DF' },
+            { name: 'Node.js', icon: 'nodedotjs', color: '5FA04E' },
+            { name: 'Vercel', icon: 'vercel', color: 'ffffff' },
+          ]).map((item, idx) => (
+            <div key={idx} className="lp-stack-pill">
+              <img
+                src={`https://cdn.simpleicons.org/${item.icon}/${item.color}`}
+                alt={item.name}
+                width={16}
+                height={16}
+                style={{ flexShrink: 0 }}
+              />
+              <span>{item.name}</span>
+            </div>
           ))}
         </div>
       </div>
@@ -848,27 +869,53 @@ export default function LandingPage() {
 
         /* ── Stack strip ─────────────────────────────────── */
         .lp-stack-strip {
-          border-top: 1px solid #161c2a;
-          border-bottom: 1px solid #161c2a;
-          padding: 20px 24px;
-          background: #090c12;
+          position: relative;
+          border-top: 1px solid rgba(255, 255, 255, 0.08);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          padding: 28px 0;
+          background-color: #06080d;
+          background-image: 
+            linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+          background-size: 32px 32px;
+          overflow: hidden;
+          mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+          -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
         }
-        .lp-stack-inner {
-          max-width: 1160px;
-          margin: 0 auto;
+        .lp-marquee-track {
           display: flex;
-          flex-wrap: wrap;
-          gap: 8px;
           align-items: center;
+          gap: 16px;
+          width: max-content;
+          animation: marquee 25s linear infinite;
+        }
+        .lp-marquee-track:hover {
+          animation-play-state: paused;
         }
         .lp-stack-pill {
-          padding: 5px 13px;
-          border-radius: 100px;
-          border: 1px solid #1e293b;
-          font-size: 12px;
-          color: #64748b;
-          font-weight: 500;
-          letter-spacing: 0.01em;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 9px 18px;
+          border-radius: 12px;
+          background: rgba(13, 17, 26, 0.85);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          font-size: 13.5px;
+          color: #f1f5f9;
+          font-weight: 600;
+          letter-spacing: -0.01em;
+          white-space: nowrap;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+          transition: border-color 0.2s, transform 0.2s;
+        }
+        .lp-stack-pill:hover {
+          border-color: rgba(56, 189, 248, 0.4);
+          transform: translateY(-1px);
+        }
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
         }
 
         /* ── CTA section ─────────────────────────────────── */
