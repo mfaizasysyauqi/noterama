@@ -13,24 +13,20 @@ import {
   Terminal,
   ArrowUpRight,
 } from 'lucide-react';
+import { useLanguage } from '@/hooks/useLanguage';
+import { t } from '@/lib/translations';
 
 /* ─── types ─── */
 type DemoTab = 'agent' | 'explorer' | 'editor';
 type Message = { role: 'user' | 'assistant'; content: string };
 
-const INIT_MESSAGES: Message[] = [
-  {
-    role: 'assistant',
-    content: 'Noterama Agent active. Loaded 6 workspace files across 3 folders. What do you need?',
-  },
-];
-
-/* ─── Static Data (DRY & Clean) ─── */
-const NAV_ITEMS = [
-  { label: 'Product', href: '#product' },
-  { label: 'Features', href: '#features' },
-  { label: 'Stack', href: '#stack' },
-  { label: 'Architecture', href: '#architecture' },
+/* ─── Feature icons (JSX — kept here, strings from translations) ─── */
+const FEATURE_ICONS = [
+  <Bot size={18} key="bot" />,
+  <FolderOpen size={18} key="folder" />,
+  <Database size={18} key="db" />,
+  <Lock size={18} key="lock" />,
+  <Terminal size={18} key="term" />,
 ];
 
 const TECH_STACK_ITEMS = [
@@ -44,48 +40,7 @@ const TECH_STACK_ITEMS = [
   { name: 'Node.js', icon: 'nodedotjs', color: '5FA04E' },
   { name: 'Vercel', icon: 'vercel', color: 'ffffff' },
 ];
-
-// Doubled array for seamless 360-degree marquee loop
 const MARQUEE_TECH_STACK = [...TECH_STACK_ITEMS, ...TECH_STACK_ITEMS];
-
-const STATS_ITEMS = [
-  { num: '100%', label: 'OPEN SOURCE' },
-  { num: '0', label: 'SIGN-UPS NEEDED' },
-  { num: '4+', label: 'AI MODELS SUPPORTED' },
-  { num: '300ms', label: 'AUTOSAVE DEBOUNCE' },
-  { num: '100%', label: 'DATA PRIVACY (BYOK)' },
-  { num: '0ms', label: 'CLOUD DEPENDENCY' },
-];
-
-const MARQUEE_STATS = [...STATS_ITEMS, ...STATS_ITEMS];
-
-const FEATURES_LIST = [
-  {
-    icon: <Bot size={18} />,
-    title: 'Full-context AI agent',
-    desc: 'Reads all files and folders at query time. Multi-session history persisted in Supabase.',
-  },
-  {
-    icon: <FolderOpen size={18} />,
-    title: 'Infinite nested folders',
-    desc: 'Drag & drop with circular-move protection. Folder state survives browser restarts.',
-  },
-  {
-    icon: <Database size={18} />,
-    title: 'Supabase cloud sync',
-    desc: 'Row-Level Security policies keep your data yours. Auto-generated SQL setup.',
-  },
-  {
-    icon: <Lock size={18} />,
-    title: 'BYOK privacy model',
-    desc: 'Your Groq API key never leaves your browser session. Zero telemetry.',
-  },
-  {
-    icon: <Terminal size={18} />,
-    title: 'Groq streaming responses',
-    desc: 'Llama 3.3 70B with token-level streaming. Feels instant at any file size.',
-  },
-];
 
 /* ─── Minimal markdown renderer (bold + bullets + newlines) ─── */
 function renderMarkdown(text: string): React.ReactNode {
@@ -140,30 +95,32 @@ function Counter({ to, duration = 1400 }: { to: number; duration?: number }) {
 
 /* ─── Main page ─── */
 export default function LandingPage() {
+  const { lang, toggle } = useLanguage();
+  const tx = t[lang];
+  const MARQUEE_STATS = [...tx.stats, ...tx.stats];
+
   const [tab, setTab] = useState<DemoTab>('agent');
-  const [query, setQuery] = useState('Summarize everything in my AI Research folder');
-  const [messages, setMessages] = useState<Message[]>(INIT_MESSAGES);
+  const [query, setQuery] = useState('');
+  const [messages, setMessages] = useState<Message[]>(() => [
+    { role: 'assistant', content: tx.demo.agentInit },
+  ]);
   const [busy, setBusy] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
+  // Re-init messages when language changes
   useEffect(() => {
-    const handleScroll = () => {
-      if (window.scrollY > 20) {
-        setIsScrolled(true);
-      } else {
-        setIsScrolled(false);
-      }
-    };
+    setMessages([{ role: 'assistant', content: tx.demo.agentInit }]);
+  }, [lang]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    const handleScroll = () => setIsScrolled(window.scrollY > 20);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollChat = () =>
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-
   useEffect(() => {
-    scrollChat();
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
   const sendMessage = (e: React.FormEvent) => {
@@ -176,11 +133,7 @@ export default function LandingPage() {
     setTimeout(() => {
       setMessages(prev => [
         ...prev,
-        {
-          role: 'assistant',
-          content:
-            'Found 4 files in AI Research:\n\n• **agent-context.md** — Prompt hierarchy & memory config\n• **groq-models.md** — Llama 3.3, Mixtral, Gemma model list\n• **benchmarks.md** — Latency comparisons\n• **notes.md** — Raw session notes\n\nAll persisted in your Supabase instance.',
-        },
+        { role: 'assistant', content: tx.demo.agentReply('AI Research') },
       ]);
       setBusy(false);
     }, 700);
@@ -211,13 +164,22 @@ export default function LandingPage() {
 
           {/* Menu Navigasi Capsule Center */}
           <nav className="lp-nav-pill-menu">
-            {NAV_ITEMS.map(({ label, href }) => (
+            {tx.nav.items.map(({ label, href }) => (
               <a key={href} href={href}>{label}</a>
             ))}
           </nav>
 
-          {/* Akses Kanan (GitHub & Launch Studio CTA) */}
+          {/* Akses Kanan */}
           <div className="lp-nav-right">
+            {/* Language toggle */}
+            <button
+              onClick={toggle}
+              title="Switch language / Ganti bahasa"
+              className="lp-lang-toggle"
+            >
+              {lang === 'en' ? '🇮🇩 ID' : '🇬🇧 EN'}
+            </button>
+
             <a
               href="https://github.com/mfaizasysyauqi/noterama"
               target="_blank"
@@ -225,11 +187,11 @@ export default function LandingPage() {
               className="lp-nav-gh-pill"
             >
               <Github size={14} />
-              <span className="desktop-only">GitHub</span>
+              <span className="desktop-only">{tx.nav.github}</span>
             </a>
 
             <Link href="/studio" className="lp-cta-nav-blue">
-              <span>Launch App</span>
+              <span>{tx.nav.launch}</span>
               <ArrowRight size={13} />
             </Link>
           </div>
@@ -241,21 +203,18 @@ export default function LandingPage() {
         <div className="lp-hero-inner">
           {/* Left: Copy */}
           <div className="lp-hero-copy">
-            <p className="lp-kicker">Markdown workspace · Groq AI · Supabase</p>
+            <p className="lp-kicker">{tx.hero.kicker}</p>
 
             <h1 className="lp-h1">
-              Notes that<br />
-              <em>think with you.</em>
+              {tx.hero.h1Line1}<br />
+              <em>{tx.hero.h1Em}</em>
             </h1>
 
-            <p className="lp-sub">
-              A high-performance markdown workspace with an AI agent that understands
-              your entire folder tree — and remembers every session.
-            </p>
+            <p className="lp-sub">{tx.hero.sub}</p>
 
             <div className="lp-hero-actions">
               <Link href="/studio" className="lp-btn-primary">
-                Open Studio <ArrowRight size={15} />
+                {tx.hero.openStudio} <ArrowRight size={15} />
               </Link>
               <a
                 href="https://github.com/mfaizasysyauqi/noterama"
@@ -263,7 +222,7 @@ export default function LandingPage() {
                 rel="noreferrer"
                 className="lp-btn-ghost"
               >
-                <Github size={15} /> View Source
+                <Github size={15} /> {tx.hero.viewSource}
               </a>
             </div>
           </div>
@@ -278,13 +237,13 @@ export default function LandingPage() {
                 <span className="lp-dot green" />
               </div>
               <div className="lp-tab-row">
-                {(['agent', 'explorer', 'editor'] as DemoTab[]).map(t => (
+                {(['agent', 'explorer', 'editor'] as DemoTab[]).map(tb => (
                   <button
-                    key={t}
-                    onClick={() => setTab(t)}
-                    className={`lp-tab ${tab === t ? 'lp-tab-active' : ''}`}
+                    key={tb}
+                    onClick={() => setTab(tb)}
+                    className={`lp-tab ${tab === tb ? 'lp-tab-active' : ''}`}
                   >
-                    {t === 'agent' ? 'AI Agent' : t === 'explorer' ? 'Files' : 'Canvas'}
+                    {tb === 'agent' ? tx.studio.aiAgent : tb === 'explorer' ? tx.studio.explorer : 'Canvas'}
                   </button>
                 ))}
               </div>
@@ -298,12 +257,12 @@ export default function LandingPage() {
                   {messages.map((m, i) => (
                     <div key={i} className={`lp-msg lp-msg-${m.role}`}>
                       <span className="lp-msg-label">
-                        {m.role === 'user' ? 'You' : 'Agent'}
+                        {m.role === 'user' ? tx.demo.userLabel : tx.demo.agentLabel}
                       </span>
                       <div className="lp-msg-text">{renderMarkdown(m.content)}</div>
                     </div>
                   ))}
-                  {busy && <p className="lp-thinking">Agent is reading…</p>}
+                  {busy && <p className="lp-thinking">{tx.demo.thinking}</p>}
                   <div ref={chatEndRef} />
                 </div>
                 <form className="lp-chat-form" onSubmit={sendMessage}>
@@ -311,10 +270,10 @@ export default function LandingPage() {
                     className="lp-chat-input"
                     value={query}
                     onChange={e => setQuery(e.target.value)}
-                    placeholder="Ask your workspace anything…"
+                    placeholder={tx.demo.placeholder}
                   />
                   <button type="submit" className="lp-chat-send">
-                    Send
+                    {tx.demo.send}
                   </button>
                 </form>
               </div>
@@ -323,7 +282,7 @@ export default function LandingPage() {
             {/* Tab: Files */}
             {tab === 'explorer' && (
               <div className="lp-demo-body lp-tree">
-                <p className="lp-tree-label">WORKSPACE</p>
+                <p className="lp-tree-label">{tx.demo.workspace}</p>
                 <div className="lp-tree-row lp-tree-folder">
                   <FolderOpen size={13} /> AI Research
                 </div>
@@ -343,7 +302,7 @@ export default function LandingPage() {
                   <FileText size={12} /> design-notes.md
                 </div>
                 <div className="lp-info-pill">
-                  Drag & drop with circular-folder protection built in.
+                  {tx.demo.infoPill}
                 </div>
               </div>
             )}
@@ -399,23 +358,18 @@ export default function LandingPage() {
         <div className="lp-features-inner">
           {/* Left: big text */}
           <div className="lp-features-lead">
-            <h2 className="lp-h2">
-              Built for the way developers actually work.
-            </h2>
-            <p className="lp-features-sub">
-              No vendor lock-in. No opaque sync. Bring your own API keys, run against your
-              own Supabase instance, and own every byte.
-            </p>
+            <h2 className="lp-h2">{tx.features.h2}</h2>
+            <p className="lp-features-sub">{tx.features.sub}</p>
             <Link href="/studio" className="lp-btn-primary lp-btn-sm">
-              Try it free <ArrowUpRight size={14} />
+              {tx.features.tryFree} <ArrowUpRight size={14} />
             </Link>
           </div>
 
           {/* Right: feature list (not cards) */}
           <ul className="lp-feature-list">
-            {FEATURES_LIST.map(({ icon, title, desc }) => (
+            {tx.features.list.map(({ title, desc }, i) => (
               <li key={title} className="lp-feature-item">
-                <span className="lp-feature-icon">{icon}</span>
+                <span className="lp-feature-icon">{FEATURE_ICONS[i]}</span>
                 <div>
                   <strong>{title}</strong>
                   <p>{desc}</p>
@@ -443,12 +397,10 @@ export default function LandingPage() {
       {/* ── CTA section ─────────────────────────────────────────────────── */}
       <section className="lp-cta-section">
         <div className="lp-cta-inner">
-          <h2 className="lp-h2">Your workspace. Your data. Your AI.</h2>
-          <p>
-            Open Noterama Studio directly in your browser. No account, no cloud dependency — unless you want it.
-          </p>
+          <h2 className="lp-h2">{tx.cta.h2}</h2>
+          <p>{tx.cta.body}</p>
           <Link href="/studio" className="lp-btn-primary lp-btn-lg">
-            Launch Noterama Studio <ArrowRight size={16} />
+            {tx.cta.btn} <ArrowRight size={16} />
           </Link>
         </div>
       </section>
@@ -460,7 +412,7 @@ export default function LandingPage() {
             Noterama
           </span>
           <span className="lp-footer-copy">
-            © {new Date().getFullYear()} — Built with Next.js, Supabase & Groq
+            {tx.footer.copy(new Date().getFullYear())}
           </span>
           <a
             href="https://github.com/mfaizasysyauqi/noterama"
@@ -468,7 +420,7 @@ export default function LandingPage() {
             rel="noreferrer"
             className="lp-footer-gh"
           >
-            <Github size={14} /> Source
+            <Github size={14} /> {tx.footer.source}
           </a>
         </div>
       </footer>
@@ -579,6 +531,27 @@ export default function LandingPage() {
           display: flex;
           align-items: center;
           gap: 10px;
+        }
+        .lp-lang-toggle {
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 6px 12px;
+          border-radius: 100px;
+          background: rgba(13, 18, 27, 0.7);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #94a3b8;
+          font-size: 11.5px;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          cursor: pointer;
+          transition: all 0.2s;
+          white-space: nowrap;
+        }
+        .lp-lang-toggle:hover {
+          border-color: rgba(255, 255, 255, 0.25);
+          color: #f8fafc;
+          background: rgba(13, 18, 27, 0.9);
         }
         .lp-nav-gh-pill {
           display: flex;

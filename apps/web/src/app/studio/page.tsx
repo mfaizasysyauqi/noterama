@@ -9,6 +9,8 @@ import { useAudioSpeech } from '@/hooks/useAudioSpeech';
 import SettingsModal from '@/components/SettingsModal';
 import UploadSourceModal from '@/components/UploadSourceModal';
 import Link from 'next/link';
+import { useLanguage } from '@/hooks/useLanguage';
+import { t } from '@/lib/translations';
 import {
   Sparkles, Send, AlertCircle, X, Settings, Upload,
   Bot, Search, Menu, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
@@ -229,6 +231,9 @@ function buildTree(
 }
 
 export default function StudioPage() {
+  const { lang, toggle } = useLanguage();
+  const tx = t[lang];
+
   const [activeTab, setActiveTab]               = useState<ActivityTab>('explorer');
   const [sidebarOpen, setSidebarOpen]           = useState(true);
   const [showAgentPanel, setShowAgentPanel]     = useState(true);
@@ -795,7 +800,7 @@ INSTRUCTIONS:
         fontWeight: 700, fontSize: 10.5, letterSpacing: '0.06em', color: 'var(--text-secondary)',
         flexShrink: 0,
       }}>
-        <span>{activeTab === 'search' ? 'SEARCH' : 'EXPLORER'}</span>
+        <span>{activeTab === 'search' ? tx.studio.search : tx.studio.explorer}</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           {activeTab === 'explorer' && (
             <div style={{ display: 'flex', gap: 1 }}>
@@ -889,24 +894,24 @@ INSTRUCTIONS:
           }}>
             <button onClick={() => { setRenaming(target.id); setRenameName(target.name); setCtxMenu(null); }}
               style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Edit3 size={13} /> Rename
+              <Edit3 size={13} /> {tx.studio.rename}
             </button>
             {target.type === 'folder' && (
               <>
                 <button onClick={() => { setCreating({ parentId: target.id, type: 'file' }); setFileTree(p => p.map(f => f.id === target.id ? { ...f, expanded: true } : f)); setCtxMenu(null); }}
                   style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FilePlus size={13} /> New File Inside
+                  <FilePlus size={13} /> {tx.studio.newFileInside}
                 </button>
                 <button onClick={() => { setCreating({ parentId: target.id, type: 'folder' }); setFileTree(p => p.map(f => f.id === target.id ? { ...f, expanded: true } : f)); setCtxMenu(null); }}
                   style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FolderPlus size={13} /> New Folder Inside
+                  <FolderPlus size={13} /> {tx.studio.newFolderInside}
                 </button>
               </>
             )}
             <div style={{ borderTop: '1px solid var(--border)', margin: '3px 0' }} />
             <button onClick={() => deleteItem(target.id)}
               style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <X size={13} /> Delete
+              <X size={13} /> {tx.studio.delete}
             </button>
           </div>
         );
@@ -928,10 +933,29 @@ INSTRUCTIONS:
             }}
           >
             <Home size={14} style={{ color: 'var(--accent-cyan)' }} />
-            <span>Noterama Studio</span>
+          <span>{tx.studio.title}</span>
           </Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          {/* Language toggle */}
+          <button
+            onClick={toggle}
+            title="Switch language / Ganti bahasa"
+            style={{
+              background: 'none',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              color: 'var(--text-secondary)',
+              fontSize: 11,
+              fontWeight: 600,
+              cursor: 'pointer',
+              padding: '3px 8px',
+              letterSpacing: '0.03em',
+            }}
+          >
+            {lang === 'en' ? '🇮🇩 ID' : '🇬🇧 EN'}
+          </button>
+
           <button
             onClick={() => setIsPreview(p => !p)}
             title={isPreview ? 'Switch to Edit mode' : 'Switch to Preview mode'}
@@ -950,12 +974,12 @@ INSTRUCTIONS:
             {isPreview ? (
               <>
                 <Edit3 size={13} style={{ color: 'var(--accent-cyan)' }} />
-                <span style={{ color: 'var(--text-bright)' }}>Edit</span>
+                <span style={{ color: 'var(--text-bright)' }}>{tx.studio.edit}</span>
               </>
             ) : (
               <>
                 <Eye size={13} style={{ color: 'var(--text-secondary)' }} />
-                <span>Preview</span>
+                <span>{tx.studio.preview}</span>
               </>
             )}
           </button>
@@ -976,7 +1000,7 @@ INSTRUCTIONS:
             }}
           >
             <Sparkles size={13} style={{ color: showAgentPanel ? 'var(--accent-cyan)' : 'var(--text-secondary)' }} />
-            <span style={{ color: showAgentPanel ? 'var(--text-bright)' : 'inherit' }}>AI Agent</span>
+            <span style={{ color: showAgentPanel ? 'var(--text-bright)' : 'inherit' }}>{tx.studio.aiAgent}</span>
           </button>
         </div>
       </header>
@@ -1238,7 +1262,7 @@ INSTRUCTIONS:
                 {showHistory && (
                   <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 200, background: 'var(--bg-sidebar)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.4)', minWidth: 200, maxHeight: 280, overflowY: 'auto', marginTop: 4 }}>
                     {sessions.length === 0 && (
-                      <div style={{ padding: '10px 12px', fontSize: 11, color: 'var(--text-tertiary)' }}>No chat history</div>
+                      <div style={{ padding: '10px 12px', fontSize: 11, color: 'var(--text-tertiary)' }}>{tx.studio.noHistory}</div>
                     )}
                     {sessions.map(s => (
                       <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 4px 2px 8px', borderRadius: 4, background: s.id === activeSessionId ? 'var(--bg-active)' : 'none' }}>
@@ -1272,7 +1296,7 @@ INSTRUCTIONS:
               <div style={{ margin: 10, padding: '8px 10px', borderRadius: 6, background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.2)', display: 'flex', gap: 6, alignItems: 'flex-start', cursor: 'pointer' }}
                 onClick={() => setShowSettings(true)}>
                 <AlertCircle size={13} style={{ color: '#eab308', flexShrink: 0, marginTop: 1 }} />
-                <span style={{ fontSize: 11, color: '#eab308' }}>No API key set. <u>Open Settings</u> to configure Groq.</span>
+                <span style={{ fontSize: 11, color: '#eab308' }}>{tx.studio.noApiKey} <u>{tx.studio.openSettings}</u> {tx.studio.configureGroq}</span>
               </div>
             )}
 
@@ -1298,7 +1322,7 @@ INSTRUCTIONS:
                 <textarea
                   value={query}
                   onChange={e => setQuery(e.target.value)}
-                  placeholder={providerOk ? `Ask about ${selectedFile?.name ?? 'your file'}…` : 'Configure API key in Settings…'}
+                  placeholder={providerOk ? tx.studio.askAbout(selectedFile?.name ?? 'your file') : tx.studio.configureApiKey}
                   disabled={!providerOk || isStreaming}
                   style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--text-bright)', fontSize: 12, outline: 'none', resize: 'none', minHeight: 48, fontFamily: 'inherit' }}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e as unknown as React.FormEvent); } }}
