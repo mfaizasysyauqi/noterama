@@ -636,6 +636,7 @@ export default function LandingPage() {
         .lp-h1 em {
           font-style: italic;
           color: #0ea5e9;
+          white-space: nowrap;
         }
         .lp-sub {
           font-size: 16px;
@@ -1115,6 +1116,7 @@ export default function LandingPage() {
         @media (max-width: 540px) {
           .lp-root { --lp-px: 16px; }
           .lp-h1 { font-size: 36px; }
+          .lp-h1 em { white-space: normal; }
           .lp-hero { padding: 96px var(--lp-px) 48px; min-height: 100dvh; }
           .lp-features { padding: 56px var(--lp-px); }
           .lp-cta-section { padding: 64px var(--lp-px); }
