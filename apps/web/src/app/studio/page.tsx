@@ -8,11 +8,12 @@ import { useChatSessions, type ChatSession } from '@/hooks/useChatSessions';
 import { useAudioSpeech } from '@/hooks/useAudioSpeech';
 import SettingsModal from '@/components/SettingsModal';
 import UploadSourceModal from '@/components/UploadSourceModal';
+import Link from 'next/link';
 import {
   Sparkles, Send, AlertCircle, X, Settings, Upload,
   Bot, Search, Menu, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
   Folder, FolderOpen, FileText, FilePlus, FolderPlus,
-  Eye, Edit3, Headphones, Play, Pause, BookOpen, MoreVertical, Plus, History,
+  Eye, Edit3, Headphones, Play, Pause, BookOpen, MoreVertical, Plus, History, Home,
 } from 'lucide-react';
 
 type NoteCard = {
@@ -887,7 +888,18 @@ INSTRUCTIONS:
             style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 4 }}>
             <Menu size={18} />
           </button>
-          <span style={{ fontWeight: 700, color: 'var(--text-bright)', fontSize: 13, letterSpacing: '-0.01em', flexShrink: 0 }}>Noterama Studio</span>
+          <Link
+            href="/"
+            title="Back to Landing Page"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 6,
+              color: 'var(--text-bright)', textDecoration: 'none',
+              fontWeight: 700, fontSize: 13, letterSpacing: '-0.01em', flexShrink: 0
+            }}
+          >
+            <Home size={14} style={{ color: 'var(--accent-cyan)' }} />
+            <span>Noterama Studio</span>
+          </Link>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
           <button
