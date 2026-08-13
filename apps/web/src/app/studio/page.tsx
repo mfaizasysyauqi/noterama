@@ -11,6 +11,7 @@ import UploadSourceModal from '@/components/UploadSourceModal';
 import Link from 'next/link';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t } from '@/lib/translations';
+import { FlagIcon } from '@/components/FlagIcon';
 import {
   Sparkles, Send, AlertCircle, X, Settings, Upload,
   Bot, Search, Menu, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
@@ -950,10 +951,14 @@ INSTRUCTIONS:
               fontWeight: 600,
               cursor: 'pointer',
               padding: '3px 8px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
               letterSpacing: '0.03em',
             }}
           >
-            {lang === 'en' ? '🇮🇩 ID' : '🇬🇧 EN'}
+            <FlagIcon country={lang === 'en' ? 'ID' : 'GB'} size={14} />
+            <span>{lang === 'en' ? 'ID' : 'EN'}</span>
           </button>
 
           <button

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useLanguage } from '@/hooks/useLanguage';
 import { t } from '@/lib/translations';
+import { FlagIcon } from '@/components/FlagIcon';
 
 /* ─── types ─── */
 type DemoTab = 'agent' | 'explorer' | 'editor';
@@ -177,7 +178,8 @@ export default function LandingPage() {
               title="Switch language / Ganti bahasa"
               className="lp-lang-toggle"
             >
-              {lang === 'en' ? '🇮🇩 ID' : '🇬🇧 EN'}
+              <FlagIcon country={lang === 'en' ? 'ID' : 'GB'} size={15} />
+              <span>{lang === 'en' ? 'ID' : 'EN'}</span>
             </button>
 
             <a
