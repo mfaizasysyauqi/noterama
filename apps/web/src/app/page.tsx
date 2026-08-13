@@ -25,6 +25,87 @@ const INIT_MESSAGES: Message[] = [
   },
 ];
 
+/* ─── Static Data (DRY & Clean) ─── */
+const NAV_ITEMS = [
+  { label: 'Product', href: '#product' },
+  { label: 'Features', href: '#features' },
+  { label: 'Stack', href: '#stack' },
+  { label: 'Architecture', href: '#architecture' },
+];
+
+const TECH_STACK_ITEMS = [
+  { name: 'Next.js 15', icon: 'nextdotjs', color: 'ffffff' },
+  { name: 'React 19', icon: 'react', color: '61DAFB' },
+  { name: 'TypeScript', icon: 'typescript', color: '3178C6' },
+  { name: 'Supabase', icon: 'supabase', color: '3ECF8E' },
+  { name: 'Tailwind CSS', icon: 'tailwindcss', color: '06B6D4' },
+  { name: 'PostgreSQL', icon: 'postgresql', color: '4169E1' },
+  { name: 'Groq AI', icon: 'meta', color: '0467DF' },
+  { name: 'Node.js', icon: 'nodedotjs', color: '5FA04E' },
+  { name: 'Vercel', icon: 'vercel', color: 'ffffff' },
+];
+
+// Doubled array for seamless 360-degree marquee loop
+const MARQUEE_TECH_STACK = [...TECH_STACK_ITEMS, ...TECH_STACK_ITEMS];
+
+const STATS_ITEMS = [
+  { num: '100%', label: 'OPEN SOURCE' },
+  { num: '0', label: 'SIGN-UPS NEEDED' },
+  { num: '4+', label: 'AI MODELS SUPPORTED' },
+  { num: '300ms', label: 'AUTOSAVE DEBOUNCE' },
+  { num: '100%', label: 'DATA PRIVACY (BYOK)' },
+  { num: '0ms', label: 'CLOUD DEPENDENCY' },
+];
+
+const MARQUEE_STATS = [...STATS_ITEMS, ...STATS_ITEMS];
+
+const FEATURES_LIST = [
+  {
+    icon: <Bot size={18} />,
+    title: 'Full-context AI agent',
+    desc: 'Reads all files and folders at query time. Multi-session history persisted in Supabase.',
+  },
+  {
+    icon: <FolderOpen size={18} />,
+    title: 'Infinite nested folders',
+    desc: 'Drag & drop with circular-move protection. Folder state survives browser restarts.',
+  },
+  {
+    icon: <Database size={18} />,
+    title: 'Supabase cloud sync',
+    desc: 'Row-Level Security policies keep your data yours. Auto-generated SQL setup.',
+  },
+  {
+    icon: <Lock size={18} />,
+    title: 'BYOK privacy model',
+    desc: 'Your Groq API key never leaves your browser session. Zero telemetry.',
+  },
+  {
+    icon: <Terminal size={18} />,
+    title: 'Groq streaming responses',
+    desc: 'Llama 3.3 70B with token-level streaming. Feels instant at any file size.',
+  },
+];
+
+/* ─── Minimal markdown renderer (bold + bullets + newlines) ─── */
+function renderMarkdown(text: string): React.ReactNode {
+  return text.split('\n').map((line, li) => {
+    // Parse inline **bold**
+    const parts = line.split(/(\*\*[^*]+\*\*)/g).map((chunk, ci) => {
+      if (chunk.startsWith('**') && chunk.endsWith('**')) {
+        return <strong key={ci}>{chunk.slice(2, -2)}</strong>;
+      }
+      return chunk;
+    });
+    // Bullet line
+    if (line.startsWith('• ') || line.startsWith('* ')) {
+      return <li key={li} style={{ listStyle: 'disc', marginLeft: 16 }}>{parts.slice(1)}</li>;
+    }
+    if (line === '') return <br key={li} />;
+    return <span key={li} style={{ display: 'block' }}>{parts}</span>;
+  });
+}
+
 /* ─── Animated counter ─── */
 function Counter({ to, duration = 1400 }: { to: number; duration?: number }) {
   const [val, setVal] = useState(0);
@@ -109,11 +190,19 @@ export default function LandingPage() {
     <div className="lp-root">
       {/* ── Navbar ─────────────────────────────────────────────────────── */}
       <header className={`lp-nav ${isScrolled ? 'scrolled' : ''}`}>
-        <div className={`lp-nav-inner ${isScrolled ? 'scrolled' : ''}`}>
-          {/* Logo dengan Badge Code Icon Hijau */}
+        <div className="lp-nav-inner">
+          {/* Logo — note + spark = AI-powered notes */}
           <Link href="/" className="lp-logo">
             <span className="lp-logo-badge">
-              <code>&lt;/&gt;</code>
+              {/* Inline SVG: note doc with a spark/bolt overlay */}
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                {/* Note document */}
+                <path d="M3 2.5C3 1.67 3.67 1 4.5 1H11L15 5V15.5C15 16.33 14.33 17 13.5 17H4.5C3.67 17 3 16.33 3 15.5V2.5Z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                {/* Folded corner */}
+                <path d="M11 1V5H15" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round"/>
+                {/* Spark / bolt */}
+                <path d="M9.5 7.5L7.5 10.5H9L8.5 13L11 9.5H9.5L9.5 7.5Z" fill="currentColor"/>
+              </svg>
             </span>
             <span className="lp-logo-text">
               Noterama<span className="lp-logo-dot">.studio</span>
@@ -122,10 +211,9 @@ export default function LandingPage() {
 
           {/* Menu Navigasi Capsule Center */}
           <nav className="lp-nav-pill-menu">
-            <a href="#product">Product</a>
-            <a href="#features">Features</a>
-            <a href="#stack">Stack</a>
-            <a href="#architecture">Architecture</a>
+            {NAV_ITEMS.map(({ label, href }) => (
+              <a key={href} href={href}>{label}</a>
+            ))}
           </nav>
 
           {/* Akses Kanan (GitHub & Launch Studio CTA) */}
@@ -140,7 +228,7 @@ export default function LandingPage() {
               <span className="desktop-only">GitHub</span>
             </a>
 
-            <Link href="/studio" className="lp-cta-nav-green">
+            <Link href="/studio" className="lp-cta-nav-blue">
               <span>Launch App</span>
               <ArrowRight size={13} />
             </Link>
@@ -212,7 +300,7 @@ export default function LandingPage() {
                       <span className="lp-msg-label">
                         {m.role === 'user' ? 'You' : 'Agent'}
                       </span>
-                      <p className="lp-msg-text">{m.content}</p>
+                      <div className="lp-msg-text">{renderMarkdown(m.content)}</div>
                     </div>
                   ))}
                   {busy && <p className="lp-thinking">Agent is reading…</p>}
@@ -288,39 +376,21 @@ export default function LandingPage() {
 
       {/* ── Tech stack marquee strip ───────────────────────────────────── */}
       <div className="lp-stack-strip">
-        <div className="lp-marquee-track">
-          {[
-            { name: 'Next.js 15', icon: 'nextdotjs', color: 'ffffff' },
-            { name: 'React 19', icon: 'react', color: '61DAFB' },
-            { name: 'TypeScript', icon: 'typescript', color: '3178C6' },
-            { name: 'Supabase', icon: 'supabase', color: '3ECF8E' },
-            { name: 'Tailwind CSS', icon: 'tailwindcss', color: '06B6D4' },
-            { name: 'PostgreSQL', icon: 'postgresql', color: '4169E1' },
-            { name: 'Groq AI', icon: 'meta', color: '0467DF' },
-            { name: 'Node.js', icon: 'nodedotjs', color: '5FA04E' },
-            { name: 'Vercel', icon: 'vercel', color: 'ffffff' },
-          ].concat([
-            { name: 'Next.js 15', icon: 'nextdotjs', color: 'ffffff' },
-            { name: 'React 19', icon: 'react', color: '61DAFB' },
-            { name: 'TypeScript', icon: 'typescript', color: '3178C6' },
-            { name: 'Supabase', icon: 'supabase', color: '3ECF8E' },
-            { name: 'Tailwind CSS', icon: 'tailwindcss', color: '06B6D4' },
-            { name: 'PostgreSQL', icon: 'postgresql', color: '4169E1' },
-            { name: 'Groq AI', icon: 'meta', color: '0467DF' },
-            { name: 'Node.js', icon: 'nodedotjs', color: '5FA04E' },
-            { name: 'Vercel', icon: 'vercel', color: 'ffffff' },
-          ]).map((item, idx) => (
-            <div key={idx} className="lp-stack-pill">
-              <img
-                src={`https://cdn.simpleicons.org/${item.icon}/${item.color}`}
-                alt={item.name}
-                width={16}
-                height={16}
-                style={{ flexShrink: 0 }}
-              />
-              <span>{item.name}</span>
-            </div>
-          ))}
+        <div className="lp-marquee-inner">
+          <div className="lp-marquee-track">
+            {MARQUEE_TECH_STACK.map((item, idx) => (
+              <div key={idx} className="lp-stack-pill">
+                <img
+                  src={`https://cdn.simpleicons.org/${item.icon}/${item.color}`}
+                  alt={item.name}
+                  width={16}
+                  height={16}
+                  style={{ flexShrink: 0 }}
+                />
+                <span>{item.name}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -343,33 +413,7 @@ export default function LandingPage() {
 
           {/* Right: feature list (not cards) */}
           <ul className="lp-feature-list">
-            {[
-              {
-                icon: <Bot size={18} />,
-                title: 'Full-context AI agent',
-                desc: 'Reads all files and folders at query time. Multi-session history persisted in Supabase.',
-              },
-              {
-                icon: <FolderOpen size={18} />,
-                title: 'Infinite nested folders',
-                desc: 'Drag & drop with circular-move protection. Folder state survives browser restarts.',
-              },
-              {
-                icon: <Database size={18} />,
-                title: 'Supabase cloud sync',
-                desc: 'Row-Level Security policies keep your data yours. Auto-generated SQL setup.',
-              },
-              {
-                icon: <Lock size={18} />,
-                title: 'BYOK privacy model',
-                desc: 'Your Groq API key never leaves your browser session. Zero telemetry.',
-              },
-              {
-                icon: <Terminal size={18} />,
-                title: 'Groq streaming responses',
-                desc: 'Llama 3.3 70B with token-level streaming. Feels instant at any file size.',
-              },
-            ].map(({ icon, title, desc }) => (
+            {FEATURES_LIST.map(({ icon, title, desc }) => (
               <li key={title} className="lp-feature-item">
                 <span className="lp-feature-icon">{icon}</span>
                 <div>
@@ -384,27 +428,15 @@ export default function LandingPage() {
 
       {/* ── Stats marquee strip ────────────────────────────────────────── */}
       <div className="lp-stats-strip">
-        <div className="lp-marquee-track-reverse">
-          {[
-            { num: '100%', label: 'OPEN SOURCE' },
-            { num: '0', label: 'SIGN-UPS NEEDED' },
-            { num: '4+', label: 'AI MODELS SUPPORTED' },
-            { num: '300ms', label: 'AUTOSAVE DEBOUNCE' },
-            { num: '100%', label: 'DATA PRIVACY (BYOK)' },
-            { num: '0ms', label: 'CLOUD DEPENDENCY' },
-          ].concat([
-            { num: '100%', label: 'OPEN SOURCE' },
-            { num: '0', label: 'SIGN-UPS NEEDED' },
-            { num: '4+', label: 'AI MODELS SUPPORTED' },
-            { num: '300ms', label: 'AUTOSAVE DEBOUNCE' },
-            { num: '100%', label: 'DATA PRIVACY (BYOK)' },
-            { num: '0ms', label: 'CLOUD DEPENDENCY' },
-          ]).map((stat, idx) => (
-            <div key={idx} className="lp-stat-pill">
-              <span className="lp-stat-pill-num">{stat.num}</span>
-              <span className="lp-stat-pill-label">{stat.label}</span>
-            </div>
-          ))}
+        <div className="lp-marquee-inner">
+          <div className="lp-marquee-track-reverse">
+            {MARQUEE_STATS.map((stat, idx) => (
+              <div key={idx} className="lp-stat-pill">
+                <span className="lp-stat-pill-num">{stat.num}</span>
+                <span className="lp-stat-pill-label">{stat.label}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -444,6 +476,10 @@ export default function LandingPage() {
       <style>{`
         /* ── Reset & tokens ─────────────────────────────── */
         .lp-root {
+          /* Layout tokens — change once, applies everywhere */
+          --lp-px: 24px;
+          --lp-max: 1160px;
+
           background: #07090e;
           color: #e2e8f0;
           font-family: 'Geist', 'Inter', system-ui, -apple-system, sans-serif;
@@ -451,16 +487,29 @@ export default function LandingPage() {
           overflow-x: clip;
         }
 
-        /* ── Nav (mfaizasysyauqi style) ──────────────────── */
+        /* ── Nav (exact mfaizasysyauqi style) ─────────────── */
         .lp-nav {
-          position: sticky;
-          top: 16px;
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
           z-index: 100;
-          max-width: 1200px;
-          margin: 0 auto;
-          padding: 0 16px;
+          padding: 20px 0;
+          background: transparent;
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .lp-nav.scrolled {
+          padding: 14px 0;
+          background: rgba(9, 13, 22, 0.85);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+          box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
         }
         .lp-nav-inner {
+          max-width: var(--lp-max);
+          margin: 0 auto;
+          padding: 0 var(--lp-px);
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -479,9 +528,9 @@ export default function LandingPage() {
           width: 34px;
           height: 34px;
           border-radius: 10px;
-          background: rgba(16, 185, 129, 0.12);
-          border: 1px solid rgba(16, 185, 129, 0.3);
-          color: #10b981;
+          background: rgba(14, 165, 233, 0.12);
+          border: 1px solid rgba(14, 165, 233, 0.3);
+          color: #0ea5e9;
           font-weight: 700;
           font-size: 13px;
           font-family: monospace;
@@ -493,7 +542,7 @@ export default function LandingPage() {
           letter-spacing: -0.03em;
         }
         .lp-logo-dot {
-          color: #10b981;
+          color: #0ea5e9;
           font-weight: 600;
           font-size: 14px;
         }
@@ -501,21 +550,18 @@ export default function LandingPage() {
           display: flex;
           align-items: center;
           gap: 20px;
-          background: rgba(10, 14, 22, 0.6);
+          background: rgba(13, 18, 27, 0.6);
           backdrop-filter: blur(12px);
           -webkit-backdrop-filter: blur(12px);
-          border: 1px solid rgba(255, 255, 255, 0.06);
+          border: 1px solid rgba(255, 255, 255, 0.08);
           border-radius: 100px;
           padding: 8px 24px;
           box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .lp-nav-inner.scrolled .lp-nav-pill-menu {
-          background: rgba(5, 8, 14, 0.95);
-          backdrop-filter: blur(20px);
-          -webkit-backdrop-filter: blur(20px);
+        .lp-nav.scrolled .lp-nav-pill-menu {
+          background: rgba(13, 18, 27, 0.9);
           border-color: rgba(255, 255, 255, 0.15);
-          box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(16, 185, 129, 0.15);
         }
         .lp-nav-pill-menu a {
           color: #94a3b8;
@@ -550,38 +596,38 @@ export default function LandingPage() {
           border-color: rgba(255, 255, 255, 0.25);
           color: #ffffff;
         }
-        .lp-cta-nav-green {
+        .lp-cta-nav-blue {
           display: flex;
           align-items: center;
           gap: 7px;
           padding: 8px 18px;
           border-radius: 100px;
-          background: rgba(16, 185, 129, 0.1);
-          border: 1px solid rgba(16, 185, 129, 0.4);
-          color: #10b981;
+          background: rgba(14, 165, 233, 0.1);
+          border: 1px solid rgba(14, 165, 233, 0.4);
+          color: #0ea5e9;
           font-size: 13px;
           font-weight: 600;
           text-decoration: none;
           white-space: nowrap;
           transition: all 0.2s;
         }
-        .lp-cta-nav-green:hover {
-          background: rgba(16, 185, 129, 0.2);
-          border-color: #10b981;
-          color: #34d399;
+        .lp-cta-nav-blue:hover {
+          background: rgba(14, 165, 233, 0.2);
+          border-color: #0ea5e9;
+          color: #38bdf8;
           transform: translateY(-1px);
         }
 
         /* ── Hero ───────────────────────────────────────── */
         .lp-hero {
-          height: calc(100dvh - 64px);
+          min-height: 100dvh;
           display: flex;
           align-items: center;
-          padding: 0 24px 64px;
+          padding: 80px var(--lp-px) 64px;
           border-bottom: 1px solid #161c2a;
         }
         .lp-hero-inner {
-          max-width: 1160px;
+          max-width: var(--lp-max);
           margin: 0 auto;
           width: 100%;
           display: grid;
@@ -842,7 +888,7 @@ export default function LandingPage() {
         }
         .lp-date { font-size: 11px; font-weight: 400; color: #475569; }
 
-        /* ── Stats strip (Reverse Marquee) ───────────────── */
+        /* ── Stats strip (Reverse Marquee) ─────────────────── */
         .lp-stats-strip {
           position: relative;
           border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -853,9 +899,15 @@ export default function LandingPage() {
             linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
           background-size: 32px 32px;
+        }
+        /* shared inner wrapper for both marquee strips — aligned with max-width container */
+        .lp-marquee-inner {
+          max-width: var(--lp-max);
+          margin: 0 auto;
+          padding-inline: var(--lp-px);
           overflow: hidden;
-          mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
-          -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+          mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
+          -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
         }
         .lp-marquee-track-reverse {
           display: flex;
@@ -882,12 +934,12 @@ export default function LandingPage() {
           transition: border-color 0.2s, transform 0.2s;
         }
         .lp-stat-pill:hover {
-          border-color: rgba(16, 185, 129, 0.4);
+          border-color: rgba(14, 165, 233, 0.4);
           transform: translateY(-1px);
         }
         .lp-stat-pill-num {
           font-weight: 800;
-          color: #10b981;
+          color: #0ea5e9;
           font-size: 14px;
           letter-spacing: -0.02em;
         }
@@ -903,9 +955,9 @@ export default function LandingPage() {
         }
 
         /* ── Features section ────────────────────────────── */
-        .lp-features { padding: 100px 24px; }
+        .lp-features { padding: 100px var(--lp-px); }
         .lp-features-inner {
-          max-width: 1160px;
+          max-width: var(--lp-max);
           margin: 0 auto;
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -982,9 +1034,6 @@ export default function LandingPage() {
             linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
             linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
           background-size: 32px 32px;
-          overflow: hidden;
-          mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
-          -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
         }
         .lp-marquee-track {
           display: flex;
@@ -1024,11 +1073,11 @@ export default function LandingPage() {
 
         /* ── CTA section ─────────────────────────────────── */
         .lp-cta-section {
-          padding: 120px 24px;
+          padding: 120px var(--lp-px);
           border-top: 1px solid #161c2a;
         }
         .lp-cta-inner {
-          max-width: 680px;
+          max-width: var(--lp-max);
           margin: 0 auto;
           text-align: left;
         }
@@ -1044,10 +1093,10 @@ export default function LandingPage() {
         .lp-footer {
           border-top: 1px solid #0f1624;
           background: #07090e;
-          padding: 24px;
+          padding: 24px var(--lp-px);
         }
         .lp-footer-inner {
-          max-width: 1160px;
+          max-width: var(--lp-max);
           margin: 0 auto;
           display: flex;
           align-items: center;
@@ -1071,10 +1120,10 @@ export default function LandingPage() {
 
         /* ── Responsive ──────────────────────────────────── */
         @media (max-width: 900px) {
+          .lp-root { --lp-px: 24px; }
           .lp-hero {
-            height: auto;
-            min-height: calc(100dvh - 64px);
-            padding: 48px 24px;
+            min-height: 100dvh;
+            padding: 96px var(--lp-px) 56px;
           }
           .lp-hero-inner,
           .lp-features-inner {
@@ -1082,27 +1131,19 @@ export default function LandingPage() {
             gap: 36px;
           }
           .lp-features-lead { position: static; }
-          .lp-stats-inner {
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-          }
           .lp-nav-pill-menu { display: none; }
-          .lp-features { padding: 72px 24px; }
-          .lp-cta-section { padding: 80px 24px; }
+          .lp-features { padding: 72px var(--lp-px); }
+          .lp-cta-section { padding: 80px var(--lp-px); }
         }
         @media (max-width: 540px) {
-          .lp-stats-inner { grid-template-columns: 1fr 1fr; }
+          .lp-root { --lp-px: 16px; }
           .lp-h1 { font-size: 36px; }
-          .lp-hero { padding: 36px 16px; min-height: calc(100dvh - 64px); }
-          .lp-nav-inner { padding: 0 16px; }
-          .lp-features { padding: 56px 16px; }
-          .lp-cta-section { padding: 64px 16px; }
-          .lp-stack-strip { padding: 16px; }
+          .lp-hero { padding: 96px var(--lp-px) 48px; min-height: 100dvh; }
+          .lp-features { padding: 56px var(--lp-px); }
+          .lp-cta-section { padding: 64px var(--lp-px); }
           .lp-hero-actions { flex-direction: column; align-items: flex-start; }
           .lp-footer-inner { flex-direction: column; align-items: flex-start; }
           .lp-footer-copy { text-align: left; }
-          .lp-stats-strip .lp-stats-inner { padding: 28px 16px; }
-          .lp-cta-inner { padding: 0; }
         }
       `}</style>
     </div>
