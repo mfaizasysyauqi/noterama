@@ -626,10 +626,10 @@ export default function LandingPage() {
           margin: 0 0 18px;
         }
         .lp-h1 {
-          font-size: clamp(40px, 5vw, 64px);
+          font-size: clamp(34px, 3.8vw, 48px);
           font-weight: 800;
-          line-height: 1.05;
-          letter-spacing: -0.04em;
+          line-height: 1.1;
+          letter-spacing: -0.03em;
           color: #f8fafc;
           margin: 0 0 20px;
         }
