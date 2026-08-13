@@ -470,6 +470,7 @@ export default function LandingPage() {
           align-items: center;
           justify-content: space-between;
           gap: 16px;
+          position: relative;
         }
         .lp-logo {
           display: flex;
@@ -503,6 +504,9 @@ export default function LandingPage() {
           font-size: 14px;
         }
         .lp-nav-pill-menu {
+          position: absolute;
+          left: 50%;
+          transform: translateX(-50%);
           display: flex;
           align-items: center;
           gap: 20px;
