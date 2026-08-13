@@ -494,14 +494,14 @@ export default function LandingPage() {
           left: 0;
           right: 0;
           z-index: 100;
-          padding: 20px 0;
+          padding: 20px var(--lp-px);
           background: transparent;
           border: none;
           outline: none;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .lp-nav.scrolled {
-          padding: 14px 0;
+          padding: 14px var(--lp-px);
           background: rgba(9, 13, 22, 0.85);
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
@@ -512,7 +512,6 @@ export default function LandingPage() {
           max-width: var(--lp-max);
           width: 100%;
           margin: 0 auto;
-          padding: 0 var(--lp-px);
           display: flex;
           align-items: center;
           justify-content: space-between;
@@ -894,7 +893,7 @@ export default function LandingPage() {
         /* ── Stats strip (Reverse Marquee) ─────────────────── */
         .lp-stats-strip {
           position: relative;
-          padding: 24px 0;
+          padding: 24px var(--lp-px);
           background-color: #06080d;
           background-image: 
             linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
@@ -906,7 +905,6 @@ export default function LandingPage() {
           max-width: var(--lp-max);
           width: 100%;
           margin: 0 auto;
-          padding-inline: var(--lp-px);
           overflow: hidden;
           mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
           -webkit-mask-image: linear-gradient(to right, transparent, black 5%, black 95%, transparent);
@@ -1028,7 +1026,7 @@ export default function LandingPage() {
         /* ── Stack strip ─────────────────────────────────── */
         .lp-stack-strip {
           position: relative;
-          padding: 28px 0;
+          padding: 28px var(--lp-px);
           background-color: #06080d;
           background-image: 
             linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
