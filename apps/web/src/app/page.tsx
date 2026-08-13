@@ -286,27 +286,39 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Stats marquee strip ────────────────────────────────────────── */}
-      <div className="lp-stats-strip">
-        <div className="lp-marquee-track-reverse">
+      {/* ── Tech stack marquee strip ───────────────────────────────────── */}
+      <div className="lp-stack-strip">
+        <div className="lp-marquee-track">
           {[
-            { num: '100%', label: 'OPEN SOURCE' },
-            { num: '0', label: 'SIGN-UPS NEEDED' },
-            { num: '4+', label: 'AI MODELS SUPPORTED' },
-            { num: '300ms', label: 'AUTOSAVE DEBOUNCE' },
-            { num: '100%', label: 'DATA PRIVACY (BYOK)' },
-            { num: '0ms', label: 'CLOUD DEPENDENCY' },
+            { name: 'Next.js 15', icon: 'nextdotjs', color: 'ffffff' },
+            { name: 'React 19', icon: 'react', color: '61DAFB' },
+            { name: 'TypeScript', icon: 'typescript', color: '3178C6' },
+            { name: 'Supabase', icon: 'supabase', color: '3ECF8E' },
+            { name: 'Tailwind CSS', icon: 'tailwindcss', color: '06B6D4' },
+            { name: 'PostgreSQL', icon: 'postgresql', color: '4169E1' },
+            { name: 'Groq AI', icon: 'meta', color: '0467DF' },
+            { name: 'Node.js', icon: 'nodedotjs', color: '5FA04E' },
+            { name: 'Vercel', icon: 'vercel', color: 'ffffff' },
           ].concat([
-            { num: '100%', label: 'OPEN SOURCE' },
-            { num: '0', label: 'SIGN-UPS NEEDED' },
-            { num: '4+', label: 'AI MODELS SUPPORTED' },
-            { num: '300ms', label: 'AUTOSAVE DEBOUNCE' },
-            { num: '100%', label: 'DATA PRIVACY (BYOK)' },
-            { num: '0ms', label: 'CLOUD DEPENDENCY' },
-          ]).map((stat, idx) => (
-            <div key={idx} className="lp-stat-pill">
-              <span className="lp-stat-pill-num">{stat.num}</span>
-              <span className="lp-stat-pill-label">{stat.label}</span>
+            { name: 'Next.js 15', icon: 'nextdotjs', color: 'ffffff' },
+            { name: 'React 19', icon: 'react', color: '61DAFB' },
+            { name: 'TypeScript', icon: 'typescript', color: '3178C6' },
+            { name: 'Supabase', icon: 'supabase', color: '3ECF8E' },
+            { name: 'Tailwind CSS', icon: 'tailwindcss', color: '06B6D4' },
+            { name: 'PostgreSQL', icon: 'postgresql', color: '4169E1' },
+            { name: 'Groq AI', icon: 'meta', color: '0467DF' },
+            { name: 'Node.js', icon: 'nodedotjs', color: '5FA04E' },
+            { name: 'Vercel', icon: 'vercel', color: 'ffffff' },
+          ]).map((item, idx) => (
+            <div key={idx} className="lp-stack-pill">
+              <img
+                src={`https://cdn.simpleicons.org/${item.icon}/${item.color}`}
+                alt={item.name}
+                width={16}
+                height={16}
+                style={{ flexShrink: 0 }}
+              />
+              <span>{item.name}</span>
             </div>
           ))}
         </div>
@@ -370,39 +382,27 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── Tech stack marquee strip ───────────────────────────────────── */}
-      <div className="lp-stack-strip">
-        <div className="lp-marquee-track">
+      {/* ── Stats marquee strip ────────────────────────────────────────── */}
+      <div className="lp-stats-strip">
+        <div className="lp-marquee-track-reverse">
           {[
-            { name: 'Next.js 15', icon: 'nextdotjs', color: 'ffffff' },
-            { name: 'React 19', icon: 'react', color: '61DAFB' },
-            { name: 'TypeScript', icon: 'typescript', color: '3178C6' },
-            { name: 'Supabase', icon: 'supabase', color: '3ECF8E' },
-            { name: 'Tailwind CSS', icon: 'tailwindcss', color: '06B6D4' },
-            { name: 'PostgreSQL', icon: 'postgresql', color: '4169E1' },
-            { name: 'Groq AI', icon: 'meta', color: '0467DF' },
-            { name: 'Node.js', icon: 'nodedotjs', color: '5FA04E' },
-            { name: 'Vercel', icon: 'vercel', color: 'ffffff' },
+            { num: '100%', label: 'OPEN SOURCE' },
+            { num: '0', label: 'SIGN-UPS NEEDED' },
+            { num: '4+', label: 'AI MODELS SUPPORTED' },
+            { num: '300ms', label: 'AUTOSAVE DEBOUNCE' },
+            { num: '100%', label: 'DATA PRIVACY (BYOK)' },
+            { num: '0ms', label: 'CLOUD DEPENDENCY' },
           ].concat([
-            { name: 'Next.js 15', icon: 'nextdotjs', color: 'ffffff' },
-            { name: 'React 19', icon: 'react', color: '61DAFB' },
-            { name: 'TypeScript', icon: 'typescript', color: '3178C6' },
-            { name: 'Supabase', icon: 'supabase', color: '3ECF8E' },
-            { name: 'Tailwind CSS', icon: 'tailwindcss', color: '06B6D4' },
-            { name: 'PostgreSQL', icon: 'postgresql', color: '4169E1' },
-            { name: 'Groq AI', icon: 'meta', color: '0467DF' },
-            { name: 'Node.js', icon: 'nodedotjs', color: '5FA04E' },
-            { name: 'Vercel', icon: 'vercel', color: 'ffffff' },
-          ]).map((item, idx) => (
-            <div key={idx} className="lp-stack-pill">
-              <img
-                src={`https://cdn.simpleicons.org/${item.icon}/${item.color}`}
-                alt={item.name}
-                width={16}
-                height={16}
-                style={{ flexShrink: 0 }}
-              />
-              <span>{item.name}</span>
+            { num: '100%', label: 'OPEN SOURCE' },
+            { num: '0', label: 'SIGN-UPS NEEDED' },
+            { num: '4+', label: 'AI MODELS SUPPORTED' },
+            { num: '300ms', label: 'AUTOSAVE DEBOUNCE' },
+            { num: '100%', label: 'DATA PRIVACY (BYOK)' },
+            { num: '0ms', label: 'CLOUD DEPENDENCY' },
+          ]).map((stat, idx) => (
+            <div key={idx} className="lp-stat-pill">
+              <span className="lp-stat-pill-num">{stat.num}</span>
+              <span className="lp-stat-pill-label">{stat.label}</span>
             </div>
           ))}
         </div>
