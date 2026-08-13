@@ -496,6 +496,8 @@ export default function LandingPage() {
           z-index: 100;
           padding: 20px 0;
           background: transparent;
+          border: none;
+          outline: none;
           transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
         .lp-nav.scrolled {
@@ -503,11 +505,12 @@ export default function LandingPage() {
           background: rgba(9, 13, 22, 0.85);
           backdrop-filter: blur(16px);
           -webkit-backdrop-filter: blur(16px);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-          box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
+          border: none;
+          box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.9);
         }
         .lp-nav-inner {
           max-width: var(--lp-max);
+          width: 100%;
           margin: 0 auto;
           padding: 0 var(--lp-px);
           display: flex;
@@ -891,8 +894,6 @@ export default function LandingPage() {
         /* ── Stats strip (Reverse Marquee) ─────────────────── */
         .lp-stats-strip {
           position: relative;
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           padding: 24px 0;
           background-color: #06080d;
           background-image: 
@@ -903,6 +904,7 @@ export default function LandingPage() {
         /* shared inner wrapper for both marquee strips — aligned with max-width container */
         .lp-marquee-inner {
           max-width: var(--lp-max);
+          width: 100%;
           margin: 0 auto;
           padding-inline: var(--lp-px);
           overflow: hidden;
@@ -1026,8 +1028,6 @@ export default function LandingPage() {
         /* ── Stack strip ─────────────────────────────────── */
         .lp-stack-strip {
           position: relative;
-          border-top: 1px solid rgba(255, 255, 255, 0.08);
-          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
           padding: 28px 0;
           background-color: #06080d;
           background-image: 
