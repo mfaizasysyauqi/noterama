@@ -1,1377 +1,455 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { PROVIDER_LABELS } from '@noterama/core';
-import { useSettings } from '@/hooks/useSettings';
-import { useNotebookData, DbSource } from '@/hooks/useNotebookData';
-import { useChatSessions, type ChatSession } from '@/hooks/useChatSessions';
-import { useAudioSpeech } from '@/hooks/useAudioSpeech';
-import SettingsModal from '@/components/SettingsModal';
-import UploadSourceModal from '@/components/UploadSourceModal';
+import React, { useState } from 'react';
+import Link from 'next/link';
 import {
-  Sparkles, Send, AlertCircle, X, Settings, Upload,
-  Bot, Search, Menu, ChevronLeft, ChevronRight, ChevronDown, ChevronUp,
-  Folder, FolderOpen, FileText, FilePlus, FolderPlus,
-  Eye, Edit3, Headphones, Play, Pause, BookOpen, MoreVertical, Plus, History,
+  Sparkles,
+  ArrowRight,
+  Folder,
+  FolderOpen,
+  FileText,
+  Bot,
+  Database,
+  ShieldCheck,
+  Zap,
+  Layers,
+  Headphones,
+  Github,
+  CheckCircle2,
+  ChevronRight,
+  LayoutGrid,
+  Cpu,
+  Lock,
 } from 'lucide-react';
 
-type NoteCard = {
-  id: string;
-  title: string;
-  date: string;
-  content: string;
-};
+export default function LandingPage() {
+  const [activeTab, setActiveTab] = useState<'agent' | 'nested' | 'canvas' | 'sync'>('agent');
 
-type FileItem = {
-  id: string;
-  name: string;
-  type: 'file' | 'folder';
-  parentId: string | null;
-  content: string;
-  cards?: NoteCard[];
-  expanded?: boolean;
-};
+  return (
+    <div style={{ background: '#0a0d14', color: '#e2e8f0', minHeight: '100vh', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      
+      {/* ── Navbar ───────────────────────────────────────────────────────────── */}
+      <nav style={{
+        position: 'sticky', top: 0, zIndex: 100,
+        backdropFilter: 'blur(16px)', background: 'rgba(10, 13, 20, 0.8)',
+        borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+        padding: '0 24px', height: 64, display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: 8,
+            background: 'linear-gradient(135deg, #06b6d4 0%, #3b82f6 100%)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 16px rgba(6, 182, 212, 0.4)'
+          }}>
+            <Sparkles size={18} style={{ color: '#ffffff' }} />
+          </div>
+          <span style={{ fontWeight: 700, fontSize: 16, color: '#f8fafc', letterSpacing: '-0.02em' }}>
+            Noterama <span style={{ color: '#38bdf8', fontSize: 12, fontWeight: 600, marginLeft: 4, padding: '2px 6px', borderRadius: 4, background: 'rgba(56, 189, 248, 0.1)' }}>STUDIO</span>
+          </span>
+        </div>
 
-type Message = { role: 'user' | 'assistant'; content: string };
-type ActivityTab = 'explorer' | 'search' | 'agent' | 'settings';
+        <div style={{ display: 'flex', alignItems: 'center', gap: 24, fontSize: 13, fontWeight: 500 }} className="desktop-only">
+          <a href="#features" style={{ color: '#94a3b8', textDecoration: 'none', transition: 'color 0.2s' }}>Features</a>
+          <a href="#bento" style={{ color: '#94a3b8', textDecoration: 'none', transition: 'color 0.2s' }}>Architecture</a>
+          <a href="#demo" style={{ color: '#94a3b8', textDecoration: 'none', transition: 'color 0.2s' }}>AI Agent</a>
+          <a href="#byok" style={{ color: '#94a3b8', textDecoration: 'none', transition: 'color 0.2s' }}>BYOK Privacy</a>
+        </div>
 
-/* Helper to parse markdown file content into card lists (split by --- and looking for @date header format) */
-function parseMarkdownToCards(content: string): NoteCard[] {
-  if (!content.trim()) return [];
-  
-  // Try splitting by markdown horizontal rules (---)
-  const sections = content.split(/\n\s*---\s*\n/);
-  const cards: NoteCard[] = [];
-  
-  sections.forEach((sect, idx) => {
-    const lines = sect.trim().split('\n');
-    if (lines.length === 0 || !sect.trim()) return;
-    
-    let title = 'Untitled Note';
-    let date = new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
-    let startIdx = 0;
-    
-    // Look for Notion-like header pattern: e.g., "### Title" or "Title"
-    // Also look for date pattern like "@June 14, 2026 2:00 PM"
-    let titleFound = false;
-    let dateFound = false;
-    
-    for (let k = 0; k < Math.min(lines.length, 3); k++) {
-      const line = lines[k].trim();
-      if (!titleFound && (line.startsWith('#') || line.startsWith('**') || line.length > 0) && !line.startsWith('@')) {
-        title = line.replace(/^[#\*\s]+/, '').replace(/[#\*\s]+$/, '');
-        titleFound = true;
-        startIdx = k + 1;
-      } else if (line.startsWith('@')) {
-        date = line.slice(1).trim();
-        dateFound = true;
-        if (startIdx <= k) startIdx = k + 1;
-      }
-    }
-    
-    const cardContent = lines.slice(startIdx).join('\n').trim();
-    cards.push({
-      id: `card-${idx}-${Date.now()}`,
-      title,
-      date,
-      content: cardContent
-    });
-  });
-  
-  // If no cards were parsed, create a default one
-  if (cards.length === 0) {
-    cards.push({
-      id: `card-0-${Date.now()}`,
-      title: 'Note Title',
-      date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
-      content: content.trim()
-    });
-  }
-  
-  return cards;
-}
-
-/* Helper to stringify card list back into a single markdown content string */
-function stringifyCardsToMarkdown(cards: NoteCard[]): string {
-  return cards.map(c => `### ${c.title}\n@${c.date}\n\n${c.content}`).join('\n\n---\n\n');
-}
-
-/* ─── Inline Markdown Tokens ──────────────────────────────────────────────── */
-function inlineMd(text: string): React.ReactNode {
-  const parts: React.ReactNode[] = [];
-  const re = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
-  let last = 0, m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
-    if (m.index > last) parts.push(text.slice(last, m.index));
-    const r = m[0];
-    if (r.startsWith('`'))        parts.push(<code key={m.index} style={{ background: 'rgba(255,255,255,0.1)', padding: '1px 5px', borderRadius: 3, fontFamily: 'var(--font-mono)', fontSize: '0.88em' }}>{r.slice(1, -1)}</code>);
-    else if (r.startsWith('**'))  parts.push(<strong key={m.index} style={{ color: 'var(--text-bright)', fontWeight: 600 }}>{r.slice(2, -2)}</strong>);
-    else                          parts.push(<em key={m.index} style={{ fontStyle: 'italic', color: 'var(--text-secondary)' }}>{r.slice(1, -1)}</em>);
-    last = m.index + r.length;
-  }
-  if (last < text.length) parts.push(text.slice(last));
-  return <>{parts}</>;
-}
-
-/* ─── Block Markdown Renderer (Notion-style document) ────────────────────── */
-function renderDoc(md: string): React.ReactNode {
-  const lines = md.split('\n');
-  const out: React.ReactNode[] = [];
-  let i = 0;
-  while (i < lines.length) {
-    const l = lines[i];
-    if (l.startsWith('# ')) {
-      out.push(<h1 key={i} style={{ fontSize: 24, fontWeight: 700, color: 'var(--text-bright)', margin: '0 0 6px', lineHeight: 1.15, letterSpacing: '-0.02em' }}>{inlineMd(l.slice(2))}</h1>);
-    } else if (l.startsWith('## ')) {
-      out.push(<h2 key={i} style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-bright)', margin: '24px 0 8px', borderBottom: '1px solid var(--border)', paddingBottom: 6 }}>{inlineMd(l.slice(3))}</h2>);
-    } else if (l.startsWith('### ')) {
-      out.push(<h3 key={i} style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-bright)', margin: '16px 0 6px' }}>{inlineMd(l.slice(4))}</h3>);
-    } else if (l.startsWith('> ')) {
-      out.push(<blockquote key={i} style={{ borderLeft: '3px solid var(--accent-blue)', paddingLeft: 16, color: 'var(--text-secondary)', margin: '12px 0', fontStyle: 'italic' }}>{inlineMd(l.slice(2))}</blockquote>);
-    } else if (l.match(/^---+$/)) {
-      out.push(<hr key={i} style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '20px 0' }} />);
-    } else if (l.startsWith('- ') || l.startsWith('* ')) {
-      const items: string[] = [];
-      while (i < lines.length && (lines[i].startsWith('- ') || lines[i].startsWith('* '))) { items.push(lines[i].slice(2)); i++; }
-      out.push(<ul key={`ul${i}`} style={{ paddingLeft: 22, margin: '8px 0' }}>{items.map((t, j) => <li key={j} style={{ margin: '4px 0', lineHeight: 1.6, color: 'var(--text-primary)' }}>{inlineMd(t)}</li>)}</ul>);
-      continue;
-    } else if (/^\d+\. /.test(l)) {
-      const items: string[] = [];
-      while (i < lines.length && /^\d+\. /.test(lines[i])) { items.push(lines[i].replace(/^\d+\. /, '')); i++; }
-      out.push(<ol key={`ol${i}`} style={{ paddingLeft: 22, margin: '8px 0' }}>{items.map((t, j) => <li key={j} style={{ margin: '4px 0', lineHeight: 1.6, color: 'var(--text-primary)' }}>{inlineMd(t)}</li>)}</ol>);
-      continue;
-    } else if (l.trim() === '') {
-      out.push(<div key={i} style={{ height: 8 }} />);
-    } else {
-      out.push(<p key={i} style={{ margin: '2px 0', color: 'var(--text-primary)', lineHeight: 1.7, fontSize: 14 }}>{inlineMd(l)}</p>);
-    }
-    i++;
-  }
-  return <>{out}</>;
-}
-
-/* ─── Chat message renderer (line-break aware) ────────────────────────────── */
-function renderChat(text: string): React.ReactNode {
-  return text.split('\n').map((line, i, arr) => (
-    <React.Fragment key={i}>{inlineMd(line)}{i < arr.length - 1 && <br />}</React.Fragment>
-  ));
-}
-
-/* ─── Check circular dependency ───────────────────────────────────────────── */
-function isDescendantOrSelf(folderId: string, targetId: string, tree: FileItem[]): boolean {
-  if (folderId === targetId) return true;
-  const children = tree.filter(f => f.parentId === folderId);
-  return children.some(c => isDescendantOrSelf(c.id, targetId, tree));
-}
-
-/* ─── Folder parent mapping helpers ─────────────────────────────────────── */
-function getFolderParentMap(): Record<string, string | null> {
-  try {
-    const raw = localStorage.getItem('noterama_folder_parents');
-    return raw ? JSON.parse(raw) : {};
-  } catch { return {}; }
-}
-
-function saveFolderParent(folderId: string, parentId: string | null) {
-  try {
-    const map = getFolderParentMap();
-    if (parentId) map[folderId] = parentId;
-    else delete map[folderId];
-    localStorage.setItem('noterama_folder_parents', JSON.stringify(map));
-  } catch {}
-}
-
-/* ─── Build file tree from portfolio / Supabase notebooks & sources ────────── */
-function buildTree(
-  nbs: Array<{ id: string; title: string; description?: string | null; tech_stack?: string[] }>,
-  dbSources: DbSource[] = [],
-  rootFileIds: string[] = [],
-  folderParentMap: Record<string, string | null> = {}
-): FileItem[] {
-  const tree: FileItem[] = [];
-  const rootSet = new Set(rootFileIds);
-
-  for (const nb of nbs) {
-    const parentId = folderParentMap[nb.id] || null;
-    tree.push({ id: nb.id, name: nb.title, type: 'folder', parentId, content: '', expanded: true });
-    
-    const nbSources = dbSources.filter(s => s.notebook_id === nb.id);
-    for (const src of nbSources) {
-      const content = src.content || '';
-      const isRoot = rootSet.has(src.id);
-      tree.push({
-        id: src.id,
-        name: src.title,
-        type: 'file',
-        parentId: isRoot ? null : nb.id,
-        content,
-        cards: parseMarkdownToCards(content),
-      });
-    }
-  }
-  return tree;
-}
-
-/* ─── Home ────────────────────────────────────────────────────────────────── */
-export default function Home() {
-
-  /* UI state */
-  const [activeTab, setActiveTab]               = useState<ActivityTab>('explorer');
-  const [sidebarOpen, setSidebarOpen]           = useState(true);
-  const [showAgentPanel, setShowAgentPanel]     = useState(true);
-  const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
-  const [showSettings, setShowSettings]         = useState(false);
-  const [showUploadModal, setShowUploadModal]   = useState(false);
-  const [isPreview, setIsPreview]               = useState(false);
-
-  /* Resizable agent panel */
-  const [agentWidth, setAgentWidth] = useState(260);
-  const [isResizing, setIsResizing] = useState(false);
-  const startResizing = useCallback((e: React.MouseEvent) => { e.preventDefault(); setIsResizing(true); }, []);
-  useEffect(() => {
-    if (!isResizing) return;
-    const onMove = (e: MouseEvent) => setAgentWidth(Math.min(650, Math.max(260, window.innerWidth - e.clientX)));
-    const onUp = () => setIsResizing(false);
-    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [isResizing]);
-
-  /* Resizable desktop sidebar */
-  const [sidebarWidth, setSidebarWidth] = useState(240);
-  const [isSidebarResizing, setIsSidebarResizing] = useState(false);
-  const startSidebarResizing = useCallback((e: React.MouseEvent) => { e.preventDefault(); setIsSidebarResizing(true); }, []);
-  useEffect(() => {
-    if (!isSidebarResizing) return;
-    const onMove = (e: MouseEvent) => setSidebarWidth(Math.min(450, Math.max(180, e.clientX - 48))); // Offset 48px from activity bar
-    const onUp = () => setIsSidebarResizing(false);
-    window.addEventListener('mousemove', onMove); window.addEventListener('mouseup', onUp);
-    return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [isSidebarResizing]);
-
-  /* Data hooks */
-  const { settings, updateSettings, loaded } = useSettings();
-  const {
-    notebooks, sources, isSupabaseConnected, addSource, uploadFile, fetchSources,
-    createNotebook, updateNotebook, deleteNotebook, createSource, updateSource, deleteSource,
-  } = useNotebookData();
-
-  const displayNbs = notebooks;
-
-  /* File tree */
-  const [selectedFileId, setSelectedFileId] = useState<string | null>(null);
-  const [openTabs, setOpenTabs]             = useState<string[]>([]);
-  const [fileTree, setFileTree]             = useState<FileItem[]>([]);
-
-  /* Root level file IDs persistence */
-  const [rootFileIds, setRootFileIds] = useState<string[]>(() => {
-    try {
-      const raw = localStorage.getItem('noterama_root_files');
-      return raw ? JSON.parse(raw) : [];
-    } catch { return []; }
-  });
-
-  const saveRootFileId = (id: string) => {
-    setRootFileIds(prev => {
-      const next = Array.from(new Set([...prev, id]));
-      try { localStorage.setItem('noterama_root_files', JSON.stringify(next)); } catch {}
-      return next;
-    });
-  };
-
-  const removeRootFileId = (id: string) => {
-    setRootFileIds(prev => {
-      const next = prev.filter(r => r !== id);
-      try { localStorage.setItem('noterama_root_files', JSON.stringify(next)); } catch {}
-      return next;
-    });
-  };
-
-  // Re-build file tree when notebooks list or sources change (e.g. loaded from Supabase)
-  useEffect(() => {
-    const tree = buildTree(displayNbs, sources, rootFileIds, getFolderParentMap());
-    setFileTree(tree);
-    
-    // Auto-select first file if none selected or if previous selected file is no longer in tree
-    const firstFile = tree.find(f => f.type === 'file')?.id ?? null;
-    if (firstFile && (!selectedFileId || !tree.some(f => f.id === selectedFileId))) {
-      setSelectedFileId(firstFile);
-      setOpenTabs([firstFile]);
-    }
-  }, [notebooks, sources, loaded, rootFileIds]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const [editContent, setEditContent]       = useState('');
-  
-  /* Inline create */
-  const [creating, setCreating]       = useState<{ parentId: string | null; type: 'file' | 'folder' } | null>(null);
-  const [createName, setCreateName]   = useState('');
-  const createInputRef                = useRef<HTMLInputElement>(null);
-
-  /* Inline rename */
-  const [renaming, setRenaming]       = useState<string | null>(null); // item id being renamed
-  const [renameName, setRenameName]   = useState('');
-  const renameInputRef                = useRef<HTMLInputElement>(null);
-  useEffect(() => { if (renaming) setTimeout(() => renameInputRef.current?.focus(), 30); }, [renaming]);
-
-  const commitRename = async () => {
-    const name = renameName.trim();
-    if (name && renaming) {
-      setFileTree(prev => prev.map(f => f.id === renaming ? { ...f, name } : f));
-      const target = fileTree.find(f => f.id === renaming);
-      if (target?.type === 'folder') {
-        updateNotebook(renaming, { title: name });
-      } else {
-        updateSource(renaming, { title: name });
-      }
-    }
-    setRenaming(null); setRenameName('');
-  };
-
-  /* Context menu */
-  type CtxMenu = { x: number; y: number; itemId: string } | null;
-  const [ctxMenu, setCtxMenu] = useState<CtxMenu>(null);
-  useEffect(() => {
-    if (!ctxMenu) return;
-    const close = () => setCtxMenu(null);
-    window.addEventListener('click', close);
-    window.addEventListener('contextmenu', close);
-    return () => { window.removeEventListener('click', close); window.removeEventListener('contextmenu', close); };
-  }, [ctxMenu]);
-
-  const deleteItem = (id: string) => {
-    const target = fileTree.find(f => f.id === id);
-    if (target?.type === 'folder') {
-      deleteNotebook(id);
-    } else {
-      deleteSource(id);
-    }
-    // Collect all descendant ids recursively
-    const collect = (pid: string): string[] => {
-      const children = fileTree.filter(f => f.parentId === pid).map(f => f.id);
-      return [pid, ...children.flatMap(collect)];
-    };
-    const ids = new Set(collect(id));
-    setFileTree(prev => prev.filter(f => !ids.has(f.id)));
-    setOpenTabs(prev => prev.filter(t => !ids.has(t)));
-    if (selectedFileId && ids.has(selectedFileId)) setSelectedFileId(null);
-    setCtxMenu(null);
-  };
-
-  /* Drag & drop */
-  const dragId = useRef<string | null>(null);
-  const [dragOver, setDragOver] = useState<string | null>(null); // id of drop target (folder id or '__root__')
-
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const editorRef     = useRef<HTMLTextAreaElement>(null);
-
-  /* Load file content when selection changes */
-  useEffect(() => {
-    const f = fileTree.find(f => f.id === selectedFileId && f.type === 'file');
-    if (f) setEditContent(f.content);
-  }, [selectedFileId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  /* Auto-save on edit (debounced 300ms) */
-  useEffect(() => {
-    if (!selectedFileId) return;
-    const t = setTimeout(() => {
-      setFileTree(prev => prev.map(f => f.id === selectedFileId ? { ...f, content: editContent } : f));
-      updateSource(selectedFileId, { content: editContent });
-    }, 300);
-    return () => clearTimeout(t);
-  }, [editContent, selectedFileId]);
-
-  /* Auto-resize textarea */
-  useEffect(() => {
-    if (!editorRef.current || isPreview) return;
-    editorRef.current.style.height = 'auto';
-    editorRef.current.style.height = editorRef.current.scrollHeight + 'px';
-  }, [editContent, isPreview]);
-
-  /* Focus create input */
-  useEffect(() => {
-    if (creating) setTimeout(() => createInputRef.current?.focus(), 40);
-  }, [creating]);
-
-  const selectedFile   = fileTree.find(f => f.id === selectedFileId && f.type === 'file') ?? null;
-  const selectedFolder = selectedFile ? fileTree.find(f => f.id === selectedFile.parentId) ?? null : null;
-  const activeNb       = selectedFolder ? displayNbs.find(n => n.id === selectedFolder.id) ?? null : null;
-
-  /* Tree helpers */
-  const toggleFolder = (id: string) => setFileTree(prev => prev.map(f => f.id === id ? { ...f, expanded: !f.expanded } : f));
-
-  const selectFile = (id: string) => {
-    setSelectedFileId(id);
-    setIsPreview(false);
-    setMobileDrawerOpen(false);
-    setOpenTabs(prev => prev.includes(id) ? prev : [...prev, id]);
-  };
-
-  const closeTab = (id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setOpenTabs(prev => {
-      const next = prev.filter(t => t !== id);
-      if (selectedFileId === id) {
-        const idx = prev.indexOf(id);
-        const fallback = next[Math.min(idx, next.length - 1)] ?? null;
-        setSelectedFileId(fallback);
-        if (fallback) {
-          const f = fileTree.find(f => f.id === fallback);
-          if (f) setEditContent(f.content);
-        }
-      }
-      return next;
-    });
-  };
-
-  const commitCreate = async () => {
-    if (!creating || !createName.trim()) { setCreating(null); setCreateName(''); return; }
-    const name = creating.type === 'file' && !createName.endsWith('.md') ? createName + '.md' : createName;
-    
-    let realId = `local-${Date.now()}`;
-    if (creating.type === 'folder') {
-      const created = await createNotebook(name);
-      if (created) realId = created.id;
-      if (creating.parentId) {
-        saveFolderParent(realId, creating.parentId);
-      }
-    } else {
-      let targetFolderId = creating.parentId;
-      if (!targetFolderId || !UUID_RE.test(targetFolderId)) {
-        const validFolder = notebooks.find(n => UUID_RE.test(n.id)) || fileTree.find(f => f.type === 'folder' && UUID_RE.test(f.id));
-        if (validFolder) {
-          targetFolderId = validFolder.id;
-        } else {
-          const newNb = await createNotebook('My Notebook');
-          if (newNb) targetFolderId = newNb.id;
-        }
-      }
-      if (targetFolderId && UUID_RE.test(targetFolderId)) {
-        const created = await createSource(targetFolderId, name, '');
-        if (created) realId = created.id;
-      }
-      if (creating.parentId === null) {
-        saveRootFileId(realId);
-      }
-    }
-
-    const newItem: FileItem = { id: realId, name, type: creating.type, parentId: creating.parentId, content: '', expanded: true };
-    // Expand parent folder
-    if (creating.parentId) {
-      setFileTree(prev => [...prev.map(f => f.id === creating.parentId ? { ...f, expanded: true } : f), newItem]);
-    } else {
-      setFileTree(prev => [...prev, newItem]);
-    }
-    if (creating.type === 'file') selectFile(realId);
-    setCreating(null);
-    setCreateName('');
-  };
-
-  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  useEffect(() => {
-    if (activeNb && isSupabaseConnected && UUID_RE.test(activeNb.id)) {
-      fetchSources(activeNb.id);
-    }
-  }, [activeNb?.id, isSupabaseConnected, fetchSources]);
-
-  /* Audio */
-  const { isPlaying, speak, stop } = useAudioSpeech();
-  const handleAudio = () => {
-    if (isPlaying) { stop(); return; }
-    speak(`Audio overview. ${activeNb?.title ?? 'Notebook'}. ${activeNb?.description ?? ''}. ${editContent.slice(0, 400)}`);
-  };
-
-  /* Chat — multi-session (Supabase-backed) */
-  const {
-    sessions, loaded: sessionsLoaded,
-    createSession, updateSession, deleteSession,
-  } = useChatSessions();
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [showHistory, setShowHistory] = useState(false);
-  const historyDropdownRef = useRef<HTMLDivElement>(null);
-
-  // Close history dropdown on outside click
-  useEffect(() => {
-    if (!showHistory) return;
-    const handler = (e: MouseEvent) => {
-      if (historyDropdownRef.current && !historyDropdownRef.current.contains(e.target as Node)) {
-        setShowHistory(false);
-      }
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showHistory]);
-
-  // Pick first session once loaded; auto-create if none exist
-  useEffect(() => {
-    if (!sessionsLoaded) return;
-    if (sessions.length === 0) {
-      createSession().then(s => setActiveSessionId(s.id));
-    } else if (!activeSessionId) {
-      setActiveSessionId(sessions[0].id);
-    }
-  }, [sessionsLoaded, sessions.length, activeSessionId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const activeSession: ChatSession | undefined =
-    sessions.find(s => s.id === activeSessionId) ?? sessions[0];
-  const messages = activeSession?.messages ?? [];
-
-  const setMessages = (updater: Message[] | ((prev: Message[]) => Message[])) => {
-    if (!activeSession) return;
-    const next = typeof updater === 'function' ? updater(activeSession.messages) : updater;
-    updateSession(activeSession.id, { messages: next });
-  };
-
-  const startNewSession = async () => {
-    const s = await createSession();
-    setActiveSessionId(s.id);
-    setShowHistory(false);
-  };
-
-  const switchSession = (id: string) => {
-    setActiveSessionId(id);
-    setShowHistory(false);
-  };
-
-  const [query, setQuery]       = useState('');
-  const [isStreaming, setIsStreaming] = useState(false);
-  const [chatError, setChatError]     = useState<string | null>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-
-  const sendMessage = useCallback(async (e: React.FormEvent) => {
-    e.preventDefault();
-    const q = query.trim();
-    if (!q || isStreaming) return;
-    setQuery(''); setChatError(null);
-    const history = [...messages, { role: 'user' as const, content: q }];
-    setMessages(history); setIsStreaming(true);
-    setMessages(p => [...p, { role: 'assistant', content: '' }]);
-    // Auto-name session from first user message
-    if (activeSession && activeSession.name === 'New Chat') {
-      const name = q.slice(0, 30) + (q.length > 30 ? '…' : '');
-      updateSession(activeSession.id, { name });
-    }
-    const treeSummary = fileTree
-      .map(item => `${item.type === 'folder' ? '📁 Folder:' : '📄 File:'} ${item.name}${item.parentId ? ` (inside parent ID: ${item.parentId})` : ' (root)'}`)
-      .join('\n');
-
-    const allFilesContent = fileTree
-      .filter(item => item.type === 'file')
-      .map(item => {
-        const content = item.id === selectedFileId ? editContent : item.content;
-        return `=== FILE: ${item.name} ===\n${content.slice(0, 1500)}`;
-      })
-      .join('\n\n');
-
-    const sys = `You are Noterama Agent, an AI assistant with full access to the user's workspace files and folders.
-
-WORKSPACE STRUCTURE & FOLDERS:
-${treeSummary || '(No folders/files in workspace)'}
-
-ACTIVE SELECTED FILE: ${selectedFile?.name ?? 'None'}
-
-WORKSPACE FILE CONTENTS:
-${allFilesContent || '(No files)'}
-
-INSTRUCTIONS:
-- You have full context of all folders, files, and their contents listed above.
-- Answer user questions accurately based on this workspace context.
-- Be concise, smart, and helpful. Use Markdown format for clean formatting.`;
-
-    try {
-      const res = await fetch('/api/chat', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history.map(m => ({ role: m.role, content: m.content })), settings, systemPrompt: sys }),
-      });
-      if (!res.ok) throw new Error((await res.json().catch(() => ({} as { error?: string }))).error ?? `Error ${res.status}`);
-      const reader = res.body?.getReader(); const dec = new TextDecoder();
-      if (!reader) throw new Error('No body');
-      let acc = '';
-      while (true) {
-        const { done, value } = await reader.read(); if (done) break;
-        acc += dec.decode(value, { stream: true });
-        setMessages(p => [...p.slice(0, -1), { role: 'assistant', content: acc }]);
-      }
-    } catch (err) {
-      setChatError(err instanceof Error ? err.message : 'Unknown'); setMessages(p => p.slice(0, -1));
-    } finally { setIsStreaming(false); }
-  }, [query, messages, selectedFile, editContent, fileTree, selectedFileId, settings, isStreaming]);
-
-  const providerOk = !!settings.apiKey;
-
-  /* ── Inline create input ───────────────────────────────────────────── */
-  /* ── Inline create input renderer ───────────────────────────────────── */
-  const renderCreateInput = (indent: number) => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: `3px 8px 3px ${indent}px`, margin: '1px 4px' }}>
-      {creating?.type === 'folder'
-        ? <Folder size={13} style={{ color: '#e2b13c', flexShrink: 0 }} />
-        : <FileText size={13} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />}
-      <input
-        ref={createInputRef}
-        value={createName}
-        onChange={e => setCreateName(e.target.value)}
-        onKeyDown={e => { if (e.key === 'Enter') commitCreate(); if (e.key === 'Escape') { setCreating(null); setCreateName(''); } }}
-        placeholder={creating?.type === 'file' ? 'untitled.md' : 'New Folder'}
-        style={{
-          flex: 1, background: 'var(--bg-input)', border: '1px solid var(--accent-blue)',
-          borderRadius: 3, padding: '2px 6px', fontSize: 12, color: 'var(--text-bright)', outline: 'none',
-        }}
-      />
-    </div>
-  );
-
-  /* ── Recursive tree renderer (DnD + CRUD) ─────────────────────────── */
-  const renderTree = (parentId: string | null, depth: number): React.ReactNode => {
-    // Show root items or items whose parent no longer exists
-    const items = parentId === null
-      ? fileTree.filter(f => f.parentId === null || !fileTree.some(p => p.id === f.parentId))
-      : fileTree.filter(f => f.parentId === parentId);
-
-    const indent = depth * 14 + 8;
-    const dropZoneId = parentId ?? '__root__';
-    return (
-      <>
-        {/* Drop zone indicator between root level */}
-        {dragId.current && (
-          <div
-            onDragOver={e => { e.preventDefault(); setDragOver(dropZoneId); }}
-            onDragLeave={() => setDragOver(null)}
-            onDrop={e => {
-              e.preventDefault(); e.stopPropagation();
-              const id = dragId.current;
-              if (id && id !== parentId) {
-                setFileTree(prev => prev.map(f => f.id === id ? { ...f, parentId } : f));
-                const dragged = fileTree.find(f => f.id === id);
-                if (dragged?.type === 'file') {
-                  if (parentId) {
-                    removeRootFileId(id);
-                    setFileTree(prev => prev.map(f => f.id === parentId ? { ...f, expanded: true } : f));
-                    updateSource(id, { notebook_id: parentId });
-                  } else {
-                    saveRootFileId(id);
-                  }
-                } else if (dragged?.type === 'folder') {
-                  saveFolderParent(id, parentId);
-                }
-              }
-              setDragOver(null); dragId.current = null;
-            }}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <a
+            href="https://github.com/mfaizasysyauqi/noterama"
+            target="_blank"
+            rel="noreferrer"
             style={{
-              height: dragOver === dropZoneId ? 3 : 0,
-              background: 'var(--accent-blue)',
-              borderRadius: 2,
-              margin: '0 8px',
-              transition: 'height 0.1s',
-              pointerEvents: dragId.current ? 'all' : 'none',
+              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 8,
+              background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)',
+              color: '#cbd5e1', fontSize: 13, fontWeight: 500, textDecoration: 'none'
             }}
-          />
-        )}
-        {creating && creating.parentId === parentId && parentId === null && (
-          renderCreateInput(indent + 16)
-        )}
-        {items.map(item => (
-          <React.Fragment key={item.id}>
-            <div
-              draggable
-              onDragStart={e => { dragId.current = item.id; e.dataTransfer.effectAllowed = 'move'; }}
-              onDragEnd={() => { dragId.current = null; setDragOver(null); }}
-              onDragOver={e => {
-                e.preventDefault(); e.stopPropagation();
-                if (item.type === 'folder' && dragId.current && !isDescendantOrSelf(dragId.current, item.id, fileTree)) {
-                  setDragOver(item.id);
-                }
-              }}
-              onDragLeave={() => setDragOver(null)}
-              onDrop={e => {
-                e.preventDefault(); e.stopPropagation();
-                const id = dragId.current;
-                if (id && item.type === 'folder' && !isDescendantOrSelf(id, item.id, fileTree)) {
-                  setFileTree(prev => prev.map(f => f.id === id ? { ...f, parentId: item.id } : f));
-                  setFileTree(prev => prev.map(f => f.id === item.id ? { ...f, expanded: true } : f));
-                  const dragged = fileTree.find(f => f.id === id);
-                  if (dragged?.type === 'file') {
-                    removeRootFileId(id);
-                    updateSource(id, { notebook_id: item.id });
-                  } else if (dragged?.type === 'folder') {
-                    saveFolderParent(id, item.id);
-                  }
-                }
-                setDragOver(null); dragId.current = null;
-              }}
-              onClick={() => {
-                if (renaming === item.id) return;
-                item.type === 'folder' ? toggleFolder(item.id) : selectFile(item.id);
-              }}
-              onDoubleClick={() => { setRenaming(item.id); setRenameName(item.name); }}
-              onContextMenu={e => { e.preventDefault(); setCtxMenu({ x: e.clientX, y: e.clientY, itemId: item.id }); }}
+          >
+            <Github size={15} />
+            <span className="desktop-only">GitHub</span>
+          </a>
+          <Link
+            href="/studio"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 18px', borderRadius: 8,
+              background: 'linear-gradient(135deg, #2563eb 0%, #0284c7 100%)',
+              color: '#ffffff', fontSize: 13, fontWeight: 600, textDecoration: 'none',
+              boxShadow: '0 0 20px rgba(37, 99, 235, 0.4)', transition: 'transform 0.2s'
+            }}
+          >
+            <span>Launch Studio</span>
+            <ArrowRight size={14} />
+          </Link>
+        </div>
+      </nav>
+
+      {/* ── Hero Section ────────────────────────────────────────────────────── */}
+      <section style={{ padding: '80px 24px 60px', textAlign: 'center', maxWidth: 1100, margin: '0 auto', position: 'relative' }}>
+        <div style={{
+          position: 'absolute', top: '10%', left: '50%', transform: 'translateX(-50%)',
+          width: 500, height: 300, background: 'radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, rgba(59, 130, 246, 0.05) 50%, transparent 70%)',
+          filter: 'blur(60px)', pointerEvents: 'none'
+        }} />
+
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 20,
+          background: 'rgba(56, 189, 248, 0.08)', border: '1px solid rgba(56, 189, 248, 0.25)',
+          color: '#38bdf8', fontSize: 12, fontWeight: 600, marginBottom: 24
+        }}>
+          <Sparkles size={14} />
+          <span>Next-Gen AI Knowledge Canvas & Workspace</span>
+        </div>
+
+        <h1 style={{
+          fontSize: 'clamp(36px, 6vw, 64px)', fontWeight: 800, color: '#f8fafc',
+          lineHeight: 1.1, letterSpacing: '-0.03em', margin: '0 0 20px', maxWidth: 900, marginLeft: 'auto', marginRight: 'auto'
+        }}>
+          Where Your Notes Meet <span style={{ background: 'linear-gradient(135deg, #38bdf8 0%, #818cf8 100%)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Full-Context AI</span>
+        </h1>
+
+        <p style={{ fontSize: 'clamp(16px, 2vw, 19px)', color: '#94a3b8', lineHeight: 1.6, maxWidth: 740, margin: '0 auto 36px', fontWeight: 400 }}>
+          Noterama Studio fuses Notion-style card editing, infinite folder hierarchies, real-time Supabase cloud sync, and an AI Agent that reads your entire workspace.
+        </p>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 14, flexWrap: 'wrap', marginBottom: 60 }}>
+          <Link
+            href="/studio"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 10, padding: '14px 28px', borderRadius: 10,
+              background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+              color: '#ffffff', fontSize: 15, fontWeight: 600, textDecoration: 'none',
+              boxShadow: '0 0 30px rgba(2, 132, 199, 0.4)'
+            }}
+          >
+            <span>Open Studio App</span>
+            <ArrowRight size={16} />
+          </Link>
+
+          <a
+            href="https://github.com/mfaizasysyauqi/noterama"
+            target="_blank"
+            rel="noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '14px 24px', borderRadius: 10,
+              background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.12)',
+              color: '#f1f5f9', fontSize: 15, fontWeight: 500, textDecoration: 'none'
+            }}
+          >
+            <Github size={18} />
+            <span>Star on GitHub</span>
+          </a>
+        </div>
+
+        {/* ── Mockup Window Preview ────────────────────────────────────────── */}
+        <div style={{
+          maxWidth: 980, margin: '0 auto', borderRadius: 12, overflow: 'hidden',
+          border: '1px solid rgba(255, 255, 255, 0.12)',
+          background: '#0f172a', boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.7)'
+        }}>
+          <div style={{
+            height: 36, background: '#1e293b', borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+          }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#ef4444' }} />
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#f59e0b' }} />
+              <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#10b981' }} />
+            </div>
+            <div style={{ fontSize: 11, color: '#64748b', fontWeight: 500 }}>Noterama Studio — Interactive Workspace</div>
+            <div style={{ width: 30 }} />
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '220px 1fr 280px', height: 380, textAlign: 'left', fontSize: 12.5 }} className="desktop-only">
+            
+            <div style={{ background: '#0b0f19', borderRight: '1px solid rgba(255, 255, 255, 0.08)', padding: '12px 8px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#475569', letterSpacing: '0.05em', padding: '4px 8px 8px' }}>WORKSPACE EXPLORER</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', color: '#e2e8f0', fontWeight: 600 }}>
+                <FolderOpen size={14} style={{ color: '#e2b13c' }} />
+                <span>AI Research</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 24px', color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', borderRadius: 4 }}>
+                <FileText size={13} style={{ color: '#38bdf8' }} />
+                <span>agent-context.md</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 8px 4px 24px', color: '#94a3b8' }}>
+                <FileText size={13} style={{ color: '#38bdf8' }} />
+                <span>groq-models.md</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', color: '#e2e8f0', marginTop: 6 }}>
+                <Folder size={14} style={{ color: '#e2b13c' }} />
+                <span>Portfolio</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', color: '#94a3b8' }}>
+                <FileText size={13} style={{ color: '#38bdf8' }} />
+                <span>README.md</span>
+              </div>
+            </div>
+
+            <div style={{ background: '#090d16', padding: '20px 24px', overflowY: 'auto' }}>
+              <div style={{ border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 8, padding: 14, background: '#0f172a', marginBottom: 12 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                  <span style={{ fontWeight: 700, color: '#f8fafc', fontSize: 14 }}>Noterama Agent Deep Context</span>
+                  <span style={{ fontSize: 11, color: '#64748b' }}>@August 13, 2026</span>
+                </div>
+                <p style={{ color: '#94a3b8', margin: 0, lineHeight: 1.5, fontSize: 12 }}>
+                  The Noterama Agent scans all nested folders and files in real-time. It uses your Groq API key to process questions with full workspace context.
+                </p>
+              </div>
+
+              <div style={{ border: '1px dashed rgba(255, 255, 255, 0.15)', borderRadius: 8, padding: 10, textAlign: 'center', color: '#64748b' }}>
+                + Add Note Card
+              </div>
+            </div>
+
+            <div style={{ background: '#0b0f19', borderLeft: '1px solid rgba(255, 255, 255, 0.08)', padding: 12, display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 8, borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
+                <span style={{ fontWeight: 600, color: '#f8fafc', fontSize: 12 }}>Move App Files to Subfolder</span>
+                <span style={{ fontSize: 10, color: '#10b981', background: 'rgba(16, 185, 129, 0.1)', padding: '2px 6px', borderRadius: 4 }}>Active</span>
+              </div>
+              
+              <div style={{ flex: 1, padding: '10px 0', fontSize: 11.5, color: '#94a3b8', lineHeight: 1.5 }}>
+                <div style={{ background: 'rgba(56, 189, 248, 0.08)', padding: 8, borderRadius: 6, border: '1px solid rgba(56, 189, 248, 0.15)', color: '#38bdf8', marginBottom: 8 }}>
+                  <strong>Agent:</strong> I found 4 files in your workspace tree. All nested folders are synced with Supabase!
+                </div>
+              </div>
+
+              <div style={{ background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: 6, padding: 6 }}>
+                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 4 }}>Ask about your workspace…</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 4, borderTop: '1px solid rgba(255, 255, 255, 0.06)' }}>
+                  <span style={{ fontSize: 10, color: '#38bdf8', background: 'rgba(56, 189, 248, 0.1)', padding: '1px 5px', borderRadius: 3 }}>llama-3.3-70b-versatile ^</span>
+                  <span style={{ background: '#2563eb', color: 'white', fontSize: 10, padding: '2px 8px', borderRadius: 3 }}>Send</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* ── Feature Bento Grid ───────────────────────────────────────────────── */}
+      <section id="bento" style={{ padding: '80px 24px', maxWidth: 1100, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 50 }}>
+          <h2 style={{ fontSize: 32, fontWeight: 700, color: '#f8fafc', letterSpacing: '-0.02em', margin: '0 0 12px' }}>
+            Built for Developers & Power Thinkers
+          </h2>
+          <p style={{ color: '#94a3b8', fontSize: 16, margin: 0 }}>
+            Everything you need in a modern knowledge studio, without lock-in or privacy compromises.
+          </p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 20 }}>
+          
+          <div style={{
+            background: 'linear-gradient(180deg, #0f172a 0%, #0b0f19 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 14, padding: 28
+          }}>
+            <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(56, 189, 248, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38bdf8', marginBottom: 16 }}>
+              <Bot size={22} />
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: '#f8fafc', margin: '0 0 8px' }}>Noterama AI Agent</h3>
+            <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+              Full workspace awareness. The agent reads every file and nested folder, providing intelligent summaries and code assistance.
+            </p>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(180deg, #0f172a 0%, #0b0f19 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 14, padding: 28
+          }}>
+            <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(226, 177, 60, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#e2b13c', marginBottom: 16 }}>
+              <Layers size={22} />
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: '#f8fafc', margin: '0 0 8px' }}>Infinite Nested Folders</h3>
+            <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+              Drag & drop organization with zero nesting limits. Prevents circular moves automatically while preserving folder hierarchy.
+            </p>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(180deg, #0f172a 0%, #0b0f19 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 14, padding: 28
+          }}>
+            <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(16, 185, 129, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10b981', marginBottom: 16 }}>
+              <Database size={22} />
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: '#f8fafc', margin: '0 0 8px' }}>Supabase Persistence</h3>
+            <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+              All notebooks, files, and AI chat history persist to your own Supabase database instantly with offline fallback.
+            </p>
+          </div>
+
+          <div style={{
+            background: 'linear-gradient(180deg, #0f172a 0%, #0b0f19 100%)',
+            border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 14, padding: 28
+          }}>
+            <div style={{ width: 42, height: 42, borderRadius: 10, background: 'rgba(168, 85, 247, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#c084fc', marginBottom: 16 }}>
+              <Lock size={22} />
+            </div>
+            <h3 style={{ fontSize: 18, fontWeight: 600, color: '#f8fafc', margin: '0 0 8px' }}>BYOK Privacy Control</h3>
+            <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+              Bring Your Own Key for Groq or local LLMs. Your API keys stay encrypted in your local browser storage.
+            </p>
+          </div>
+
+        </div>
+      </section>
+
+      {/* ── Interactive Feature Spotlight Tabs ──────────────────────────────── */}
+      <section id="features" style={{ padding: '60px 24px 80px', maxWidth: 1000, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+          <h2 style={{ fontSize: 28, fontWeight: 700, color: '#f8fafc', margin: '0 0 10px' }}>
+            Experience Noterama Studio Features
+          </h2>
+          <p style={{ color: '#94a3b8', fontSize: 15 }}>Click below to explore core capabilities</p>
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 10, flexWrap: 'wrap', marginBottom: 30 }}>
+          {[
+            { id: 'agent', label: 'AI Agent Chat', icon: <Bot size={15} /> },
+            { id: 'nested', label: 'Nested Explorer', icon: <FolderOpen size={15} /> },
+            { id: 'canvas', label: 'Notion Canvas', icon: <FileText size={15} /> },
+            { id: 'sync', label: 'Cloud Database', icon: <Database size={15} /> },
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id as any)}
               style={{
-                display: 'flex', alignItems: 'center', gap: 4,
-                padding: `3px 8px 3px ${indent}px`,
-                fontSize: 12.5, cursor: 'grab',
-                background: dragOver === item.id
-                  ? 'rgba(59,130,246,0.15)'
-                  : selectedFileId === item.id ? 'var(--bg-active)' : 'transparent',
-                color: selectedFileId === item.id ? 'var(--text-bright)' : 'var(--text-primary)',
-                borderRadius: 4, margin: '1px 4px',
-                transition: 'background var(--transition)',
-                outline: dragOver === item.id ? '1px solid var(--accent-blue)' : 'none',
+                display: 'flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 8,
+                background: activeTab === t.id ? 'rgba(56, 189, 248, 0.15)' : 'rgba(255, 255, 255, 0.04)',
+                border: activeTab === t.id ? '1px solid #38bdf8' : '1px solid rgba(255, 255, 255, 0.08)',
+                color: activeTab === t.id ? '#38bdf8' : '#94a3b8',
+                fontSize: 13, fontWeight: 600, cursor: 'pointer', transition: 'all 0.2s'
               }}
             >
-              {item.type === 'folder' ? (
-                <>
-                  {item.expanded
-                    ? <ChevronDown size={11} style={{ flexShrink: 0, color: 'var(--text-tertiary)', pointerEvents: 'none' }} />
-                    : <ChevronRight size={11} style={{ flexShrink: 0, color: 'var(--text-tertiary)', pointerEvents: 'none' }} />}
-                  {item.expanded
-                    ? <FolderOpen size={14} style={{ flexShrink: 0, color: '#e2b13c', pointerEvents: 'none' }} />
-                    : <Folder size={14} style={{ flexShrink: 0, color: '#e2b13c', pointerEvents: 'none' }} />}
-                  {renaming === item.id ? (
-                    <input ref={renameInputRef} value={renameName}
-                      onChange={e => setRenameName(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') { setRenaming(null); setRenameName(''); } }}
-                      onClick={e => e.stopPropagation()}
-                      style={{ flex: 1, background: 'var(--bg-input)', border: '1px solid var(--accent-blue)', borderRadius: 3, padding: '1px 5px', fontSize: 12, color: 'var(--text-bright)', outline: 'none' }}
-                    />
-                  ) : (
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, fontWeight: 500, pointerEvents: 'none' }}>{item.name}</span>
-                  )}
-                  {renaming !== item.id && (
-                    <button
-                      className="ag-tree-more-btn"
-                      title="CRUD Menu"
-                      onClick={e => {
-                        e.stopPropagation();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setCtxMenu({ x: Math.min(window.innerWidth - 170, rect.left), y: rect.bottom + 4, itemId: item.id });
-                      }}
-                      style={{
-                        background: 'none', border: 'none', color: 'var(--text-tertiary)',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '2px 4px', borderRadius: 3, marginLeft: 'auto', flexShrink: 0,
-                      }}
-                    >
-                      <MoreVertical size={13} />
-                    </button>
-                  )}
-                </>
-              ) : (
-                <>
-                  <span style={{ width: 11, flexShrink: 0 }} />
-                  <FileText size={13} style={{ flexShrink: 0, color: 'var(--accent-cyan)', pointerEvents: 'none' }} />
-                  {renaming === item.id ? (
-                    <input ref={renameInputRef} value={renameName}
-                      onChange={e => setRenameName(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') commitRename(); if (e.key === 'Escape') { setRenaming(null); setRenameName(''); } }}
-                      onClick={e => e.stopPropagation()}
-                      style={{ flex: 1, background: 'var(--bg-input)', border: '1px solid var(--accent-blue)', borderRadius: 3, padding: '1px 5px', fontSize: 12, color: 'var(--text-bright)', outline: 'none' }}
-                    />
-                  ) : (
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, pointerEvents: 'none' }}>{item.name}</span>
-                  )}
-                  {renaming !== item.id && (
-                    <button
-                      className="ag-tree-more-btn"
-                      title="CRUD Menu"
-                      onClick={e => {
-                        e.stopPropagation();
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        setCtxMenu({ x: Math.min(window.innerWidth - 170, rect.left), y: rect.bottom + 4, itemId: item.id });
-                      }}
-                      style={{
-                        background: 'none', border: 'none', color: 'var(--text-tertiary)',
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        padding: '2px 4px', borderRadius: 3, marginLeft: 'auto', flexShrink: 0,
-                      }}
-                    >
-                      <MoreVertical size={13} />
-                    </button>
-                  )}
-                </>
-              )}
-            </div>
-            {item.type === 'folder' && item.expanded && (
+              {t.icon}
+              <span>{t.label}</span>
+            </button>
+          ))}
+        </div>
+
+        <div style={{
+          background: '#0f172a', border: '1px solid rgba(255, 255, 255, 0.1)', borderRadius: 12, padding: 32,
+          display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 30, alignItems: 'center'
+        }}>
+          <div>
+            {activeTab === 'agent' && (
               <>
-                {renderTree(item.id, depth + 1)}
-                {creating && creating.parentId === item.id && (
-                  renderCreateInput((depth + 1) * 14 + 8 + 15)
-                )}
+                <h3 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px' }}>Context-Aware Noterama Agent</h3>
+                <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
+                  Unlike standard chatbots, Noterama Agent reads your entire workspace tree and file contents. It maintains multi-session chat histories backed by Supabase.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: 13 }}>
+                    <CheckCircle2 size={16} style={{ color: '#38bdf8' }} /> Auto-names sessions from user prompts
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: 13 }}>
+                    <CheckCircle2 size={16} style={{ color: '#38bdf8' }} /> Model selection indicator with smooth dropdown
+                  </div>
+                </div>
               </>
             )}
-          </React.Fragment>
-        ))}
-      </>
-    );
-  };
 
-  /* ── Sidebar content ───────────────────────────────────────────────── */
-  const renderSidebarContent = (isMobile?: boolean) => (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Header */}
-      <div style={{
-        height: 38, padding: '0 10px', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', borderBottom: '1px solid var(--border)',
-        fontWeight: 700, fontSize: 10.5, letterSpacing: '0.06em', color: 'var(--text-secondary)',
-        flexShrink: 0,
+            {activeTab === 'nested' && (
+              <>
+                <h3 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px' }}>Multi-Level Drag & Drop Explorer</h3>
+                <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
+                  Organize files and subfolders effortlessly. Create root files or nested items with full CRUD (Rename, New File, New Folder, Delete) via context menu or 3-dots left-click.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: 13 }}>
+                    <CheckCircle2 size={16} style={{ color: '#e2b13c' }} /> Circular reference protection
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: 13 }}>
+                    <CheckCircle2 size={16} style={{ color: '#e2b13c' }} /> Instant local storage & Supabase folder map
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'canvas' && (
+              <>
+                <h3 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px' }}>Notion-Style Card Editor</h3>
+                <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
+                  Write and organize markdown notes in clean, structured cards with date badges, real-time preview toggle, and instant speech audio overview.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: 13 }}>
+                    <CheckCircle2 size={16} style={{ color: '#10b981' }} /> Debounced 300ms auto-save
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: 13 }}>
+                    <CheckCircle2 size={16} style={{ color: '#10b981' }} /> Audio Speech Synthesis overview
+                  </div>
+                </div>
+              </>
+            )}
+
+            {activeTab === 'sync' && (
+              <>
+                <h3 style={{ fontSize: 22, fontWeight: 700, color: '#f8fafc', margin: '0 0 12px' }}>Zero-Config Cloud Database</h3>
+                <p style={{ color: '#94a3b8', fontSize: 14, lineHeight: 1.6 }}>
+                  Connect your own Supabase project in seconds. Run our automated SQL setup script directly from the settings panel to initialize tables and RLS policies.
+                </p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: 13 }}>
+                    <CheckCircle2 size={16} style={{ color: '#c084fc' }} /> Automated SQL script generator
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#e2e8f0', fontSize: 13 }}>
+                    <CheckCircle2 size={16} style={{ color: '#c084fc' }} /> Row-Level Security (RLS) policies
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div style={{ background: '#0b0f19', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 10, padding: 20, fontSize: 12, color: '#94a3b8' }}>
+            <div style={{ color: '#38bdf8', fontWeight: 600, marginBottom: 8, fontSize: 11, letterSpacing: '0.05em' }}>FEATURE PREVIEW</div>
+            <pre style={{ background: '#070a11', padding: 12, borderRadius: 6, color: '#38bdf8', fontFamily: 'monospace', overflowX: 'auto', margin: 0 }}>
+              {activeTab === 'agent' && `// Agent Workspace Tree Context\nconst treeSummary = fileTree.map(f => \n  \`\${f.type === 'folder' ? '📁' : '📄'} \${f.name}\`\n).join('\\n');`}
+              {activeTab === 'nested' && `// Circular Move Guard\nfunction isDescendantOrSelf(folderId, targetId) {\n  if (folderId === targetId) return true;\n  return children.some(c => isDescendantOrSelf(c.id, targetId));\n}`}
+              {activeTab === 'canvas' && `// Notion Card Parser\nfunction parseMarkdownToCards(md) {\n  return md.split('\\n---').map(sect => ({\n    title, date, content\n  }));\n}`}
+              {activeTab === 'sync' && `// Supabase Sync\nawait supabase.from('chat_sessions')\n  .insert({ name, messages })\n  .select().single();`}
+            </pre>
+          </div>
+        </div>
+      </section>
+
+      {/* ── CTA Banner ──────────────────────────────────────────────────────── */}
+      <section style={{ padding: '80px 24px', textAlign: 'center', background: 'linear-gradient(180deg, #0a0d14 0%, #0f172a 100%)', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        <h2 style={{ fontSize: 32, fontWeight: 800, color: '#f8fafc', margin: '0 0 16px', letterSpacing: '-0.02em' }}>
+          Ready to Launch Your Knowledge Studio?
+        </h2>
+        <p style={{ color: '#94a3b8', fontSize: 16, maxWidth: 580, margin: '0 auto 32px' }}>
+          No login required. Start organizing your notes, code, and AI conversations right now.
+        </p>
+        <Link
+          href="/studio"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: 10, padding: '16px 36px', borderRadius: 10,
+            background: 'linear-gradient(135deg, #0284c7 0%, #2563eb 100%)',
+            color: '#ffffff', fontSize: 16, fontWeight: 700, textDecoration: 'none',
+            boxShadow: '0 0 30px rgba(37, 99, 235, 0.4)'
+          }}
+        >
+          <span>Open Noterama Studio Workspace</span>
+          <ArrowRight size={18} />
+        </Link>
+      </section>
+
+      {/* ── Footer ──────────────────────────────────────────────────────────── */}
+      <footer style={{
+        padding: '32px 24px', borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+        textAlign: 'center', color: '#64748b', fontSize: 13
       }}>
-        <span>{activeTab === 'search' ? 'SEARCH' : 'EXPLORER'}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          {activeTab === 'explorer' && (
-            <div style={{ display: 'flex', gap: 1 }}>
-              <button title="New File (.md)" onClick={() => setCreating({ parentId: null, type: 'file' })}
-                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', padding: 4, borderRadius: 3 }}>
-                <FilePlus size={14} />
-              </button>
-              <button title="New Folder" onClick={() => setCreating({ parentId: null, type: 'folder' })}
-                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', padding: 4, borderRadius: 3 }}>
-                <FolderPlus size={14} />
-              </button>
-            </div>
-          )}
-          {isMobile && (
-            <button onClick={() => setMobileDrawerOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', padding: 4, borderRadius: 3 }}>
-              <ChevronLeft size={16} />
-            </button>
-          )}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 12 }}>
+          <Sparkles size={16} style={{ color: '#38bdf8' }} />
+          <span style={{ color: '#e2e8f0', fontWeight: 600 }}>Noterama Studio</span>
         </div>
-      </div>
+        <p style={{ margin: '0 0 8px' }}>Created with Next.js 15, Turbopack, React 19, Supabase & Groq AI</p>
+        <p style={{ margin: 0 }}>© {new Date().getFullYear()} Noterama. MIT Licensed.</p>
+      </footer>
 
-      {/* Search input */}
-      {activeTab === 'search' && (
-        <div style={{ padding: '8px 10px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 10px' }}>
-            <Search size={11} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
-            <input autoFocus value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search files…"
-              style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-bright)', fontSize: 12, width: '100%' }} />
-          </div>
-        </div>
-      )}
-
-      {/* Tree or search results */}
-      <div style={{ flex: 1, overflowY: 'auto', overflowX: 'auto', padding: '6px 0' }}>
-        {activeTab === 'explorer'
-          ? renderTree(null, 0)
-          : fileTree.filter(f => f.type === 'file' && f.name.toLowerCase().includes(searchQuery.toLowerCase())).map(f => (
-            <div key={f.id} onClick={() => { setActiveTab('explorer'); selectFile(f.id); }}
-              style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '5px 12px', cursor: 'pointer', fontSize: 12.5, color: 'var(--text-primary)', borderRadius: 4, margin: '1px 4px', transition: 'background var(--transition)' }}>
-              <FileText size={13} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</span>
-            </div>
-          ))
-        }
-      </div>
-
-    </div>
-  );
-
-  /* ── Activity bar icon ─────────────────────────────────────────────── */
-  const renderActivityIcon = (tab: ActivityTab, icon: React.ReactNode, label: string, badge?: number) => {
-    const isActive = tab === activeTab || (tab === 'agent' && showAgentPanel);
-    const handleClick = () => {
-      if (tab === 'settings') { setShowSettings(true); return; }
-      if (tab === 'agent') { setShowAgentPanel(p => !p); return; }
-      if (tab === activeTab) setSidebarOpen(p => !p);
-      else { setActiveTab(tab); setSidebarOpen(true); }
-    };
-    return (
-      <button onClick={handleClick} title={label}
-        style={{ width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: 'none', border: 'none', color: isActive ? 'var(--text-bright)' : 'var(--text-secondary)', cursor: 'pointer', transition: 'all var(--transition)', position: 'relative' }}>
-        {isActive && <span style={{ position: 'absolute', left: -6, top: 6, bottom: 6, width: 2, background: 'var(--accent-blue)', borderRadius: 2 }} />}
-        {icon}
-        {badge != null && badge > 0 && (
-          <span style={{ position: 'absolute', top: 2, right: 2, background: 'var(--accent-blue)', color: 'white', fontSize: 9, fontWeight: 700, lineHeight: 1, padding: '1px 4px', borderRadius: 10, minWidth: 14, textAlign: 'center' }}>{badge}</span>
-        )}
-      </button>
-    );
-  };
-
-  /* ── Render ──────────────────────────────────────────────────────────── */
-  return (
-    <div className="ag-shell">
-
-      {/* Modals */}
-      {showSettings && <SettingsModal settings={settings} onUpdate={updateSettings} onClose={() => setShowSettings(false)} />}
-      {showUploadModal && activeNb && (
-        <UploadSourceModal notebookId={activeNb.id}
-          onAddSource={async (t, ty, c, url) => { await addSource(activeNb.id, t, ty, c, url); }}
-          uploadFile={uploadFile} onClose={() => setShowUploadModal(false)} />
-      )}
-
-      {/* Mobile overlay */}
-      {mobileDrawerOpen && <div className="mobile-overlay" onClick={() => setMobileDrawerOpen(false)} />}
-
-      {/* Context menu */}
-      {ctxMenu && (() => {
-        const target = fileTree.find(f => f.id === ctxMenu.itemId);
-        if (!target) return null;
-        return (
-          <div onClick={e => e.stopPropagation()} style={{
-            position: 'fixed', zIndex: 9999,
-            left: ctxMenu.x, top: ctxMenu.y,
-            background: 'var(--bg-sidebar)',
-            border: '1px solid var(--border)',
-            borderRadius: 8,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
-            minWidth: 160, padding: '4px 0',
-            fontSize: 12.5,
-          }}>
-            <button onClick={() => { setRenaming(target.id); setRenameName(target.name); setCtxMenu(null); }}
-              style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Edit3 size={13} /> Rename
-            </button>
-            {target.type === 'folder' && (
-              <>
-                <button onClick={() => { setCreating({ parentId: target.id, type: 'file' }); setFileTree(p => p.map(f => f.id === target.id ? { ...f, expanded: true } : f)); setCtxMenu(null); }}
-                  style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FilePlus size={13} /> New File Inside
-                </button>
-                <button onClick={() => { setCreating({ parentId: target.id, type: 'folder' }); setFileTree(p => p.map(f => f.id === target.id ? { ...f, expanded: true } : f)); setCtxMenu(null); }}
-                  style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <FolderPlus size={13} /> New Folder Inside
-                </button>
-              </>
-            )}
-            <div style={{ borderTop: '1px solid var(--border)', margin: '3px 0' }} />
-            <button onClick={() => deleteItem(target.id)}
-              style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px 14px', display: 'flex', alignItems: 'center', gap: 8 }}>
-              <X size={13} /> Delete
-            </button>
-          </div>
-        );
-      })()}
-
-      {/* ── Header ──────────────────────────────────────────────────────── */}
-      <header className="ag-menu-bar" style={{ height: 42, padding: '0 16px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, overflow: 'hidden' }}>
-          <button className="mobile-burger" onClick={() => setMobileDrawerOpen(true)}
-            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: 4 }}>
-            <Menu size={18} />
-          </button>
-          <span style={{ fontWeight: 700, color: 'var(--text-bright)', fontSize: 13, letterSpacing: '-0.01em', flexShrink: 0 }}>Noterama Studio</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-          {/* Preview icon toggle in menu bar */}
-          <button
-            onClick={() => setIsPreview(p => !p)}
-            title={isPreview ? 'Switch to Edit mode' : 'Switch to Preview mode'}
-            className="btn btn-ghost"
-            style={{
-              padding: '4px 10px',
-              fontSize: 11,
-              fontWeight: 500,
-              gap: 6,
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-              height: 28,
-            }}
-          >
-            {isPreview ? (
-              <>
-                <Edit3 size={13} style={{ color: 'var(--accent-cyan)' }} />
-                <span style={{ color: 'var(--text-bright)' }}>Edit</span>
-              </>
-            ) : (
-              <>
-                <Eye size={13} style={{ color: 'var(--text-secondary)' }} />
-                <span>Preview</span>
-              </>
-            )}
-          </button>
-
-          {/* AI Agent toggle in menu bar */}
-          <button
-            onClick={() => setShowAgentPanel(p => !p)}
-            title="Toggle AI Agent Panel"
-            className="btn btn-ghost"
-            style={{
-              padding: '4px 10px',
-              fontSize: 11,
-              fontWeight: 500,
-              gap: 6,
-              display: 'flex',
-              alignItems: 'center',
-              cursor: 'pointer',
-              height: 28,
-            }}
-          >
-            <Sparkles size={13} style={{ color: showAgentPanel ? 'var(--accent-cyan)' : 'var(--text-secondary)' }} />
-            <span style={{ color: showAgentPanel ? 'var(--text-bright)' : 'inherit' }}>AI Agent</span>
-          </button>
-        </div>
-      </header>
-
-      {/* ── Body ─────────────────────────────────────────────────────────── */}
-      <div className="ag-body">
-
-        {/* Activity Bar — desktop only */}
-        <div className="ag-activity-bar desktop-only">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-            {renderActivityIcon('explorer', <BookOpen size={18} />, 'Explorer')}
-            {renderActivityIcon('search',   <Search size={18} />,   'Search')}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 'auto' }}>
-            {renderActivityIcon('settings', <Settings size={18} />, 'Settings')}
-          </div>
-        </div>
-
-        {/* Sidebar — desktop only */}
-        {sidebarOpen && (
-          <div className="ag-sidebar desktop-only" style={{ width: sidebarWidth, position: 'relative' }}>
-            {renderSidebarContent()}
-            {/* Sidebar resizer on the right edge */}
-            <div
-              className={`ag-resizer ${isSidebarResizing ? 'is-resizing' : ''}`}
-              onMouseDown={startSidebarResizing}
-              title="Drag to resize sidebar"
-              style={{ left: 'auto', right: -3, width: 5, cursor: 'col-resize' }}
-            />
-          </div>
-        )}
-
-        {/* Mobile drawer */}
-        <div className={`mobile-drawer ${mobileDrawerOpen ? 'open' : ''}`}>
-          <div className="ag-activity-bar" style={{ borderRight: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-              {renderActivityIcon('explorer', <BookOpen size={18} />, 'Explorer')}
-              {renderActivityIcon('search',   <Search size={18} />,   'Search')}
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 'auto' }}>
-              {renderActivityIcon('settings', <Settings size={18} />, 'Settings')}
-            </div>
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: 'var(--bg-sidebar)', overflow: 'hidden' }}>
-            {renderSidebarContent(true)}
-          </div>
-        </div>
-
-        {/* ── Document Editor ──────────────────────────────────────────── */}
-        <div className="ag-editor">
-          {/* ── Tab Bar ──────────────────────────────────────────────────── */}
-          <div style={{
-            display: 'flex', alignItems: 'stretch',
-            background: 'var(--bg-activity)',
-            borderBottom: '1px solid var(--border)',
-            overflowX: 'auto', flexShrink: 0, height: 35,
-            scrollbarWidth: 'none',
-          }}>
-            {openTabs.map(tabId => {
-              const tabFile = fileTree.find(f => f.id === tabId);
-              if (!tabFile) return null;
-              const isActive = tabId === selectedFileId;
-              return (
-                <div
-                  key={tabId}
-                  onClick={() => selectFile(tabId)}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '0 12px 0 14px',
-                    borderRight: '1px solid var(--border)',
-                    background: isActive ? 'var(--bg-editor)' : 'transparent',
-                    borderTop: isActive ? '1px solid var(--accent-blue)' : '1px solid transparent',
-                    cursor: 'pointer', flexShrink: 0, userSelect: 'none',
-                    transition: 'background var(--transition)',
-                    minWidth: 0,
-                  }}
-                >
-                  <FileText size={13} style={{ color: isActive ? 'var(--accent-cyan)' : 'var(--text-tertiary)', flexShrink: 0 }} />
-                  <span style={{ fontSize: 12, color: isActive ? 'var(--text-bright)' : 'var(--text-secondary)', whiteSpace: 'nowrap', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                    {tabFile.name}
-                  </span>
-                  <button
-                    onClick={e => closeTab(tabId, e)}
-                    style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', padding: '1px 2px', borderRadius: 3, marginLeft: 2, flexShrink: 0 }}
-                    title="Close tab"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
-              );
-            })}
-
-            {/* Spacer to push tab items left */}
-            <div style={{ marginLeft: 'auto' }} />
-          </div>
-
-          {/* ── Breadcrumb ────────────────────────────────────────────────── */}
-          {selectedFile && (
-            <div style={{
-              height: 26, padding: '0 16px',
-              display: 'flex', alignItems: 'center', gap: 5,
-              borderBottom: '1px solid var(--border)',
-              background: 'var(--bg-editor)',
-              fontSize: 12, color: 'var(--text-tertiary)',
-              flexShrink: 0, overflow: 'hidden',
-            }}>
-              {selectedFolder && (
-                <>
-                  <Folder size={12} style={{ color: '#e2b13c', flexShrink: 0 }} />
-                  <span style={{ color: 'var(--text-secondary)' }}>{selectedFolder.name}</span>
-                  <ChevronRight size={11} style={{ flexShrink: 0 }} />
-                </>
-              )}
-              <FileText size={12} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
-              <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{selectedFile.name}</span>
-            </div>
-          )}
-
-          {selectedFile ? (
-            <>
-              {/* Document body — Notion-like card canvas */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '40px 60px' }}>
-                <div style={{ maxWidth: 760, margin: '0 auto' }}>
-                  
-                  {/* Card note list */}
-                  <div className="notion-card-list">
-                    {(selectedFile.cards || parseMarkdownToCards(editContent)).map((card, index) => {
-                      const updateCard = (updatedFields: Partial<NoteCard>) => {
-                        const currentCards = selectedFile.cards || parseMarkdownToCards(editContent);
-                        const newCards = currentCards.map(c => c.id === card.id ? { ...c, ...updatedFields } : c);
-                        const newContent = stringifyCardsToMarkdown(newCards);
-                        setEditContent(newContent);
-                        setFileTree(prev => prev.map(f => f.id === selectedFile.id ? { ...f, content: newContent, cards: newCards } : f));
-                      };
-
-                      const deleteCard = () => {
-                        const currentCards = selectedFile.cards || parseMarkdownToCards(editContent);
-                        const newCards = currentCards.filter(c => c.id !== card.id);
-                        const newContent = stringifyCardsToMarkdown(newCards);
-                        setEditContent(newContent);
-                        setFileTree(prev => prev.map(f => f.id === selectedFile.id ? { ...f, content: newContent, cards: newCards } : f));
-                      };
-
-                      return (
-                        <div key={card.id} className="notion-card">
-                          <div className="notion-card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, flex: 1, minWidth: 0 }}>
-                              {/* Page / Calendar Icon */}
-                              <FileText size={15} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
-                              
-                              {/* Card title editing */}
-                              <input
-                                value={card.title}
-                                onChange={e => updateCard({ title: e.target.value })}
-                                placeholder="Note Title"
-                                className="notion-card-title-input"
-                                style={{ width: `${Math.max(50, card.title.length * 8.5)}px`, flex: '0 0 auto' }}
-                              />
-
-                              {/* Date badge inline next to title */}
-                              <div className="notion-card-date" style={{ display: 'flex', alignItems: 'center', gap: 2, color: 'var(--text-tertiary)', fontSize: 13, marginTop: 1 }}>
-                                <span>@</span>
-                                <input
-                                  value={card.date}
-                                  onChange={e => updateCard({ date: e.target.value })}
-                                  style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    outline: 'none',
-                                    fontSize: 13,
-                                    color: 'var(--text-tertiary)',
-                                    width: `${Math.max(20, card.date.length * 7)}px`,
-                                  }}
-                                  placeholder="Date / Time"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Delete button on the far right */}
-                            <button onClick={deleteCard} className="notion-card-delete-btn" title="Delete card" style={{ flexShrink: 0 }}>
-                              <X size={14} />
-                            </button>
-                          </div>
-
-                          {/* Editable note content area */}
-                          {isPreview ? (
-                            <div style={{ userSelect: 'text', padding: '4px 0', minHeight: 40 }}>
-                              {renderDoc(card.content || '*Empty note. Click Edit to add details.*')}
-                            </div>
-                          ) : (
-                            <textarea
-                              value={card.content}
-                              onChange={e => updateCard({ content: e.target.value })}
-                              placeholder="Write some markdown..."
-                              spellCheck
-                              rows={Math.max(3, card.content.split('\n').length)}
-                              style={{
-                                width: '100%',
-                                background: 'transparent',
-                                border: 'none',
-                                outline: 'none',
-                                color: 'var(--text-primary)',
-                                fontSize: 14,
-                                lineHeight: 1.6,
-                                fontFamily: 'inherit',
-                                resize: 'none',
-                                minHeight: 60,
-                                caretColor: 'var(--accent-cyan)',
-                                userSelect: 'text',
-                              }}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Add note card button */}
-                  <div style={{ marginTop: 20, display: 'flex', justifyContent: 'center' }}>
-                    <button
-                      onClick={() => {
-                        const currentCards = selectedFile.cards || parseMarkdownToCards(editContent);
-                        const newCards = [
-                          ...currentCards,
-                          {
-                            id: `card-new-${Date.now()}`,
-                            title: 'New Note Item',
-                            date: new Date().toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
-                            content: ''
-                          }
-                        ];
-                        const newContent = stringifyCardsToMarkdown(newCards);
-                        setEditContent(newContent);
-                        setFileTree(prev => prev.map(f => f.id === selectedFile.id ? { ...f, content: newContent, cards: newCards } : f));
-                      }}
-                      className="btn btn-ghost"
-                      style={{ fontSize: 13, gap: 6 }}
-                    >
-                      <FilePlus size={15} />
-                      <span>Add Note Card</span>
-                    </button>
-                  </div>
-
-                </div>
-              </div>
-            </>
-          ) : (
-            /* Empty state */
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 14, color: 'var(--text-tertiary)' }}>
-              <FileText size={44} style={{ opacity: 0.2 }} />
-              <span style={{ fontSize: 14, opacity: 0.6 }}>Select a file or create a new one</span>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setCreating({ parentId: null, type: 'file' })} className="btn btn-ghost" style={{ fontSize: 12 }}>
-                  <FilePlus size={13} /> New File
-                </button>
-                <button onClick={() => setCreating({ parentId: null, type: 'folder' })} className="btn btn-ghost" style={{ fontSize: 12 }}>
-                  <FolderPlus size={13} /> New Folder
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* ── AI Agent Panel ────────────────────────────────────────────── */}
-        {showAgentPanel && (
-          <div className="ag-agent-panel" style={{ width: agentWidth }}>
-            <div className={`ag-resizer desktop-only ${isResizing ? 'is-resizing' : ''}`} onMouseDown={startResizing} title="Drag to resize" />
-
-            {/* Agent header — Antigravity style */}
-            <div style={{ height: 38, padding: '0 8px 0 12px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0, position: 'relative' }}>
-              {/* Session name */}
-              <span style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-bright)', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                title={activeSession?.name ?? 'New Chat'}>
-                {activeSession?.name ?? 'New Chat'}
-              </span>
-
-              {/* + new session */}
-              <button title="New chat" onClick={startNewSession}
-                style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px 5px', borderRadius: 4 }}>
-                <Plus size={14} />
-              </button>
-
-              {/* History */}
-              <div ref={historyDropdownRef} style={{ position: 'relative' }}>
-                <button title="Chat history" onClick={() => setShowHistory(p => !p)}
-                  style={{ background: showHistory ? 'var(--bg-active)' : 'none', border: 'none', color: showHistory ? 'var(--text-bright)' : 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px 5px', borderRadius: 4 }}>
-                  <History size={14} />
-                </button>
-                {showHistory && (
-                  <div style={{ position: 'absolute', top: '100%', right: 0, zIndex: 200, background: 'var(--bg-sidebar)', border: '1px solid var(--border)', borderRadius: 6, boxShadow: '0 4px 16px rgba(0,0,0,0.4)', minWidth: 200, maxHeight: 280, overflowY: 'auto', marginTop: 4 }}>
-                    {sessions.length === 0 && (
-                      <div style={{ padding: '10px 12px', fontSize: 11, color: 'var(--text-tertiary)' }}>No chat history</div>
-                    )}
-                    {sessions.map(s => (
-                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '2px 4px 2px 8px', borderRadius: 4, background: s.id === activeSessionId ? 'var(--bg-active)' : 'none' }}>
-                        <button onClick={() => switchSession(s.id)}
-                          style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', color: s.id === activeSessionId ? 'var(--text-bright)' : 'var(--text-primary)', padding: '5px 4px', fontSize: 12, cursor: 'pointer', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {s.name}
-                        </button>
-                        <button
-                          title="Delete session"
-                          onClick={async e => {
-                            e.stopPropagation();
-                            await deleteSession(s.id);
-                            if (s.id === activeSessionId) setActiveSessionId(null);
-                          }}
-                          style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px', borderRadius: 3, flexShrink: 0 }}>
-                          <X size={11} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Close */}
-              <button title="Close" onClick={() => setShowAgentPanel(false)}
-                style={{ background: 'none', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '4px 5px', borderRadius: 4 }}>
-                <X size={14} />
-              </button>
-            </div>
-
-            {/* API key warning */}
-            {loaded && !providerOk && (
-              <div style={{ margin: 10, padding: '8px 10px', borderRadius: 6, background: 'rgba(234,179,8,0.1)', border: '1px solid rgba(234,179,8,0.2)', display: 'flex', gap: 6, alignItems: 'flex-start', cursor: 'pointer' }}
-                onClick={() => setShowSettings(true)}>
-                <AlertCircle size={13} style={{ color: '#eab308', flexShrink: 0, marginTop: 1 }} />
-                <span style={{ fontSize: 11, color: '#eab308' }}>No API key set. <u>Open Settings</u> to configure Groq.</span>
-              </div>
-            )}
-
-            {/* Messages */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {messages.map((msg, i) => (
-                <div key={i} className={msg.role === 'user' ? 'ag-chat-user' : 'ag-chat-agent'}>
-                  {msg.content
-                    ? renderChat(msg.content)
-                    : (isStreaming && i === messages.length - 1 ? <span style={{ opacity: 0.5 }}>▋</span> : null)}
-                </div>
-              ))}
-              {chatError && (
-                <div style={{ display: 'flex', gap: 6, padding: '8px 10px', borderRadius: 6, background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                  <AlertCircle size={13} style={{ color: '#ef4444', flexShrink: 0, marginTop: 1 }} />
-                  <span style={{ fontSize: 11, color: '#ef4444' }}>{chatError}</span>
-                </div>
-              )}
-              <div ref={chatEndRef} />
-            </div>
-
-            {/* Prompt bar */}
-            <form onSubmit={sendMessage} style={{ padding: 10, borderTop: '1px solid var(--border)', background: 'var(--bg-sidebar)' }}>
-              <div style={{ background: 'var(--bg-input)', border: '1px solid var(--border)', borderRadius: 8, padding: 8 }}>
-                <textarea
-                  value={query}
-                  onChange={e => setQuery(e.target.value)}
-                  placeholder={providerOk ? `Ask about ${selectedFile?.name ?? 'your file'}…` : 'Configure API key in Settings…'}
-                  disabled={!providerOk || isStreaming}
-                  style={{ width: '100%', background: 'transparent', border: 'none', color: 'var(--text-bright)', fontSize: 12, outline: 'none', resize: 'none', minHeight: 48, fontFamily: 'inherit' }}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(e as unknown as React.FormEvent); } }}
-                />
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginTop: 6, paddingTop: 6, borderTop: '1px solid var(--border)' }}>
-                  <span className="ag-badge" style={{ fontSize: 10, cursor: 'pointer', gap: 4, maxWidth: 'calc(100% - 70px)', overflow: 'hidden', flexShrink: 1, minWidth: 0 }} onClick={() => setShowSettings(true)}>
-                    <Bot size={11} style={{ color: 'var(--accent-cyan)', flexShrink: 0 }} />
-                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{settings.model || 'Groq'}</span>
-                    <ChevronUp size={10} style={{ color: 'var(--text-tertiary)', flexShrink: 0 }} />
-                  </span>
-                  <button type="submit" disabled={!providerOk || isStreaming || !query.trim()}
-                    style={{ background: 'var(--accent-blue)', color: 'white', border: 'none', borderRadius: 4, padding: '4px 10px', fontSize: 11, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, opacity: (!providerOk || isStreaming || !query.trim()) ? 0.5 : 1 }}>
-                    <span>Send</span><Send size={11} />
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
