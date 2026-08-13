@@ -97,27 +97,41 @@ export default function LandingPage() {
       {/* ── Navbar ─────────────────────────────────────────────────────── */}
       <header className="lp-nav">
         <div className="lp-nav-inner">
+          {/* Logo dengan Badge Code Icon Hijau */}
           <Link href="/" className="lp-logo">
-            Noterama
+            <span className="lp-logo-badge">
+              <code>&lt;/&gt;</code>
+            </span>
+            <span className="lp-logo-text">
+              Noterama<span className="lp-logo-dot">.studio</span>
+            </span>
           </Link>
 
-          <nav className="lp-nav-links">
+          {/* Menu Navigasi Capsule Center */}
+          <nav className="lp-nav-pill-menu">
             <a href="#product">Product</a>
+            <a href="#features">Features</a>
             <a href="#stack">Stack</a>
+            <a href="#architecture">Architecture</a>
+          </nav>
+
+          {/* Akses Kanan (GitHub & Launch Studio CTA) */}
+          <div className="lp-nav-right">
             <a
               href="https://github.com/mfaizasysyauqi/noterama"
               target="_blank"
               rel="noreferrer"
-              className="lp-nav-gh"
+              className="lp-nav-gh-pill"
             >
               <Github size={14} />
-              <span>GitHub</span>
+              <span className="desktop-only">GitHub</span>
             </a>
-          </nav>
 
-          <Link href="/studio" className="lp-cta-nav">
-            Open Studio <ArrowRight size={13} />
-          </Link>
+            <Link href="/studio" className="lp-cta-nav-green">
+              <span>Launch App</span>
+              <ArrowRight size={13} />
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -423,86 +437,118 @@ export default function LandingPage() {
           min-height: 100vh;
         }
 
-        /* ── Nav ────────────────────────────────────────── */
+        /* ── Nav (mfaizasysyauqi style) ──────────────────── */
         .lp-nav {
           position: sticky;
           top: 16px;
           z-index: 100;
-          max-width: 1080px;
+          max-width: 1200px;
           margin: 0 auto;
           padding: 0 16px;
         }
         .lp-nav-inner {
-          background: rgba(13, 17, 27, 0.75);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
-          border-radius: 100px;
-          padding: 0 20px;
-          height: 54px;
           display: flex;
           align-items: center;
           justify-content: space-between;
-          gap: 24px;
-          box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+          gap: 16px;
         }
         .lp-logo {
           display: flex;
           align-items: center;
-          gap: 8px;
-          font-size: 15px;
-          font-weight: 700;
-          color: #f8fafc;
+          gap: 10px;
           text-decoration: none;
-          letter-spacing: -0.02em;
-          flex-shrink: 0;
         }
-        .lp-logo-mark {
-          width: 26px;
-          height: 26px;
-          border-radius: 6px;
-          background: #0ea5e9;
-          color: #fff;
+        .lp-logo-badge {
           display: flex;
           align-items: center;
           justify-content: center;
+          width: 34px;
+          height: 34px;
+          border-radius: 10px;
+          background: rgba(16, 185, 129, 0.12);
+          border: 1px solid rgba(16, 185, 129, 0.3);
+          color: #10b981;
+          font-weight: 700;
           font-size: 13px;
-          font-weight: 800;
-          flex-shrink: 0;
+          font-family: monospace;
         }
-        .lp-nav-links {
+        .lp-logo-text {
+          font-size: 16px;
+          font-weight: 800;
+          color: #ffffff;
+          letter-spacing: -0.03em;
+        }
+        .lp-logo-dot {
+          color: #10b981;
+          font-weight: 600;
+          font-size: 14px;
+        }
+        .lp-nav-pill-menu {
           display: flex;
           align-items: center;
-          gap: 28px;
-          font-size: 13.5px;
+          gap: 20px;
+          background: rgba(13, 18, 27, 0.85);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 100px;
+          padding: 8px 24px;
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+        .lp-nav-pill-menu a {
           color: #94a3b8;
-        }
-        .lp-nav-links a {
-          color: inherit;
           text-decoration: none;
-          transition: color .2s;
+          font-size: 13px;
+          font-weight: 500;
+          transition: color 0.2s;
         }
-        .lp-nav-links a:hover { color: #f8fafc; }
-        .lp-nav-gh {
-          display: flex !important;
+        .lp-nav-pill-menu a:hover {
+          color: #f8fafc;
+        }
+        .lp-nav-right {
+          display: flex;
           align-items: center;
-          gap: 5px;
+          gap: 10px;
         }
-        .lp-cta-nav {
+        .lp-nav-gh-pill {
           display: flex;
           align-items: center;
           gap: 6px;
-          padding: 7px 16px;
+          padding: 8px 16px;
           border-radius: 100px;
-          background: #0ea5e9;
-          color: #fff;
+          background: rgba(13, 18, 27, 0.85);
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          color: #cbd5e1;
+          font-size: 12.5px;
+          font-weight: 500;
+          text-decoration: none;
+          transition: all 0.2s;
+        }
+        .lp-nav-gh-pill:hover {
+          border-color: rgba(255, 255, 255, 0.25);
+          color: #ffffff;
+        }
+        .lp-cta-nav-green {
+          display: flex;
+          align-items: center;
+          gap: 7px;
+          padding: 8px 18px;
+          border-radius: 100px;
+          background: rgba(16, 185, 129, 0.1);
+          border: 1px solid rgba(16, 185, 129, 0.4);
+          color: #10b981;
           font-size: 13px;
           font-weight: 600;
           text-decoration: none;
           white-space: nowrap;
-          transition: background .2s;
+          transition: all 0.2s;
         }
-        .lp-cta-nav:hover { background: #0284c7; }
+        .lp-cta-nav-green:hover {
+          background: rgba(16, 185, 129, 0.2);
+          border-color: #10b981;
+          color: #34d399;
+          transform: translateY(-1px);
+        }
 
         /* ── Hero ───────────────────────────────────────── */
         .lp-hero {
@@ -1018,7 +1064,7 @@ export default function LandingPage() {
             grid-template-columns: 1fr 1fr;
             gap: 20px;
           }
-          .lp-nav-links { display: none; }
+          .lp-nav-pill-menu { display: none; }
           .lp-features { padding: 72px 24px; }
           .lp-cta-section { padding: 80px 24px; }
         }
