@@ -399,21 +399,25 @@ export default function LandingPage() {
         /* ── Nav ────────────────────────────────────────── */
         .lp-nav {
           position: sticky;
-          top: 0;
-          z-index: 50;
-          background: rgba(7,9,14,0.88);
-          backdrop-filter: blur(14px);
-          border-bottom: 1px solid #161c2a;
+          top: 16px;
+          z-index: 100;
+          max-width: 1080px;
+          margin: 0 auto;
+          padding: 0 16px;
         }
         .lp-nav-inner {
-          max-width: 1160px;
-          margin: 0 auto;
-          padding: 0 24px;
-          height: 64px;
+          background: rgba(13, 17, 27, 0.75);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          border-radius: 100px;
+          padding: 0 20px;
+          height: 54px;
           display: flex;
           align-items: center;
           justify-content: space-between;
           gap: 24px;
+          box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
         }
         .lp-logo {
           display: flex;
@@ -462,7 +466,7 @@ export default function LandingPage() {
           align-items: center;
           gap: 6px;
           padding: 7px 16px;
-          border-radius: 6px;
+          border-radius: 100px;
           background: #0ea5e9;
           color: #fff;
           font-size: 13px;
