@@ -63,7 +63,19 @@ export default function LandingPage() {
   const [query, setQuery] = useState('Summarize everything in my AI Research folder');
   const [messages, setMessages] = useState<Message[]>(INIT_MESSAGES);
   const [busy, setBusy] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 20) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
 
   const scrollChat = () =>
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -95,8 +107,8 @@ export default function LandingPage() {
   return (
     <div className="lp-root">
       {/* ── Navbar ─────────────────────────────────────────────────────── */}
-      <header className="lp-nav">
-        <div className="lp-nav-inner">
+      <header className={`lp-nav ${isScrolled ? 'scrolled' : ''}`}>
+        <div className={`lp-nav-inner ${isScrolled ? 'scrolled' : ''}`}>
           {/* Logo dengan Badge Code Icon Hijau */}
           <Link href="/" className="lp-logo">
             <span className="lp-logo-badge">
@@ -488,13 +500,21 @@ export default function LandingPage() {
           display: flex;
           align-items: center;
           gap: 20px;
-          background: rgba(13, 18, 27, 0.85);
-          backdrop-filter: blur(16px);
-          -webkit-backdrop-filter: blur(16px);
-          border: 1px solid rgba(255, 255, 255, 0.08);
+          background: rgba(10, 14, 22, 0.6);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.06);
           border-radius: 100px;
           padding: 8px 24px;
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .lp-nav-inner.scrolled .lp-nav-pill-menu {
+          background: rgba(5, 8, 14, 0.95);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border-color: rgba(255, 255, 255, 0.15);
+          box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(16, 185, 129, 0.15);
         }
         .lp-nav-pill-menu a {
           color: #94a3b8;
