@@ -98,8 +98,7 @@ export default function LandingPage() {
       <header className="lp-nav">
         <div className="lp-nav-inner">
           <Link href="/" className="lp-logo">
-            <span className="lp-logo-mark">N</span>
-            <span>oterama</span>
+            Noterama
           </Link>
 
           <nav className="lp-nav-links">
@@ -371,8 +370,7 @@ export default function LandingPage() {
       {/* ── Footer ──────────────────────────────────────────────────────── */}
       <footer className="lp-footer">
         <div className="lp-footer-inner">
-          <span className="lp-logo" style={{ fontSize: 13 }}>
-            <span className="lp-logo-mark" style={{ width: 20, height: 20, fontSize: 11 }}>N</span>
+          <span className="lp-logo" style={{ fontSize: 14 }}>
             Noterama
           </span>
           <span className="lp-footer-copy">
@@ -477,10 +475,10 @@ export default function LandingPage() {
 
         /* ── Hero ───────────────────────────────────────── */
         .lp-hero {
-          min-height: 100dvh;
+          height: calc(100dvh - 64px);
           display: flex;
           align-items: center;
-          padding: 80px 24px 60px;
+          padding: 0 24px 64px;
           border-bottom: 1px solid #161c2a;
         }
         .lp-hero-inner {
@@ -919,8 +917,9 @@ export default function LandingPage() {
         /* ── Responsive ──────────────────────────────────── */
         @media (max-width: 900px) {
           .lp-hero {
-            min-height: unset;
-            padding: 64px 24px 48px;
+            height: auto;
+            min-height: calc(100dvh - 64px);
+            padding: 48px 24px;
           }
           .lp-hero-inner,
           .lp-features-inner {
@@ -939,7 +938,7 @@ export default function LandingPage() {
         @media (max-width: 540px) {
           .lp-stats-inner { grid-template-columns: 1fr 1fr; }
           .lp-h1 { font-size: 36px; }
-          .lp-hero { padding: 48px 16px 36px; }
+          .lp-hero { padding: 36px 16px; min-height: calc(100dvh - 64px); }
           .lp-nav-inner { padding: 0 16px; }
           .lp-features { padding: 56px 16px; }
           .lp-cta-section { padding: 64px 16px; }
