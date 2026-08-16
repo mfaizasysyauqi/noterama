@@ -19,7 +19,7 @@ export const DEFAULT_MODELS: Record<AIProvider, string> = {
   openai:    'gpt-4o-mini',
   google:    'gemini-2.0-flash',
   anthropic: 'claude-3-5-haiku-20241022',
-  groq:      'llama-3.3-70b-versatile',
+  groq:      'qwen/qwen3.6-27b',
 };
 
 export const PROVIDER_LABELS: Record<AIProvider, string> = {
